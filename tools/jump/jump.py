@@ -28,11 +28,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 import time
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 IS_WINDOWS = os.name == "nt"
 
@@ -261,6 +260,31 @@ class Terminal:
         self.out.write(text)
         self.out.flush()
 
+    def get_size(self) -> tuple:
+        """Return (cols, rows) of the *real* terminal.
+
+        ``shutil.get_terminal_size`` inspects stdout, but our stdout is captured
+        by the shell's command substitution (a pipe), so it would always fall
+        back to 80x24. Query the actual tty/console fd instead.
+        """
+        # Prefer an explicit override if the user set one.
+        try:
+            cols = int(os.environ.get("COLUMNS", "") or 0)
+            rows = int(os.environ.get("LINES", "") or 0)
+            if cols > 0 and rows > 0:
+                return cols, rows
+        except ValueError:
+            pass
+        fd = self._unix_in.fileno() if not IS_WINDOWS else self.out.fileno()
+        for candidate in (fd, 1, 2):
+            try:
+                size = os.get_terminal_size(candidate)
+                if size.columns > 0 and size.lines > 0:
+                    return size.columns, size.lines
+            except (OSError, ValueError):
+                continue
+        return 80, 24
+
     def enter_fullscreen(self) -> None:
         self.write("\x1b[?1049h\x1b[?25l")
 
@@ -478,7 +502,7 @@ class Selector:
         return "\x1b[7m" + line + "\x1b[27m" if selected else line
 
     def render(self, term: Terminal, items: list) -> None:
-        cols, rows = shutil.get_terminal_size((80, 24))
+        cols, rows = term.get_size()
         rows = max(rows, 5)
         cols = max(cols, 10)
         # Reserve: title row, column-header row, divider + footer (bottom two).
