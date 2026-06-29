@@ -736,3 +736,10 @@ if ($starshipExe) {
   }
   . $starshipCache
 }
+
+# j (jump — dev-scaffolder directory jumper)
+# Defined by the jump tool's installer; dot-sourced here when present.
+# >>> dev-scaffolder jump (j) >>>
+$__jumpInit = Join-Path $env:LOCALAPPDATA 'dev-scaffolder\jump\init.ps1'
+if (Test-Path $__jumpInit) { . $__jumpInit }
+# <<< dev-scaffolder jump (j) <<<

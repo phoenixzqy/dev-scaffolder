@@ -56,6 +56,12 @@ if command -v fzf &>/dev/null; then
   source <(fzf --zsh) 2>/dev/null || true
 fi
 
+# ── j (jump — dev-scaffolder directory jumper) ─────────────────────────────
+# Defined by the jump tool's installer; sourced here when present.
+# >>> dev-scaffolder jump (j) >>>
+[ -f "$HOME/.local/share/dev-scaffolder/jump/init.zsh" ] && source "$HOME/.local/share/dev-scaffolder/jump/init.zsh"
+# <<< dev-scaffolder jump (j) <<<
+
 # ── Node version manager (optional) ──────────────────────────────────────
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"

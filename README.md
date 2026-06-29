@@ -32,7 +32,7 @@ windows/
   tools/
     00-package-managers.ps1
     10-git.ps1   15-gh.ps1   20-node.ps1   25-python.ps1
-    30-cli-tools.ps1   40-fonts.ps1   50-starship.ps1   55-lazygit.ps1
+    30-cli-tools.ps1   35-jump.ps1   40-fonts.ps1   50-starship.ps1   55-lazygit.ps1
     60-copilot-cli.ps1   70-nvim.ps1   80-windows-terminal.ps1   90-pwsh-profile.ps1
   configs/
     nvim/   starship/   windows-terminal/   lazygit/   gh/   pwsh/
@@ -44,7 +44,7 @@ macos/
   lib/common.sh            # shared helpers (brew, deploy, backup)
   tools/
     00-homebrew.sh   10-git.sh   15-gh.sh   20-node.sh   25-python.sh
-    30-cli-tools.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
+    30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
     60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh   90-zsh-profile.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
@@ -55,10 +55,14 @@ linux/
   lib/common.sh            # shared helpers (apt, deploy, backup, sudo)
   tools/
     00-apt-update.sh   10-git.sh   15-gh.sh   20-node.sh   25-python.sh
-    30-cli-tools.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
+    30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
     60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh   90-zsh-profile.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
+
+tools/                     # shared, self-maintained cross-platform tools
+  jump/jump.py             # `j` — autojump-style directory jumper (Python stdlib)
+  README.md                # conventions for shared tools; installed by all 3 scaffolders
 ```
 
 Each `tools/*` script is **standalone** — run it on its own to (re)install just
@@ -94,6 +98,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 20 | Node.js LTS + globals | `OpenJS.NodeJS.LTS` | `node` | NodeSource | — |
 | 25 | Python 3 + packages | `Python.Python.3.12` | `python3` | `python3` | — |
 | 30 | rg, fd, fzf, bat, zoxide, cmake | winget | brew | apt + curl | — |
+| 35 | `j` directory jumper | our own (Python) | our own (Python) | our own (Python) | `j` shell function |
 | 40 | JetBrainsMono Nerd Font | nerd-fonts zip | brew cask | nerd-fonts zip | — |
 | 50 | Starship prompt | `Starship.Starship` | `starship` | curl installer | `~/.config/starship.toml` |
 | 55 | Lazygit | scoop `extras/lazygit` | `lazygit` | GitHub release | `config.yml` |
@@ -101,7 +106,35 @@ All three platforms install the same core tools. Platform-specific differences n
 | 70 | Neovim + plugins | `Neovim.Neovim` | `neovim` | PPA / AppImage | `nvim/` config dir |
 | 80 | Terminal | Windows Terminal | Ghostty | Ghostty (optional) | `settings.json` / `config` |
 | 90 | Shell profile | PowerShell profile | zsh + Oh My Zsh | zsh + Oh My Zsh | `$PROFILE` / `.zshrc` |
-| 90 | Shell profile | PowerShell profile | zsh + Oh My Zsh | `$PROFILE` / `.zshrc` |
+
+## `j` — directory jumper
+
+A small, self-maintained tool we ship in `tools/jump/` (a simplified
+[autojump](https://github.com/wting/autojump)) and install on all three
+platforms. One global command, `j`, saves directories and jumps back into them
+through a terminal picker. Pure Python standard library, so it runs identically
+everywhere.
+
+```text
+j add            # save the current directory
+j                # open the picker and cd into the chosen directory
+j list           # print saved paths
+j version        # print the installed version
+j update         # self-update to the latest release
+j -h             # full help
+```
+
+The picker shows a table — path on the left, **jump count** and **date added**
+on the right — ordered by pinned → most-jumped → newest. Missing directories are
+shown in red. Keys: `↑/↓` move, `enter` jump, `d` delete, `p` pin, `u` unpin,
+`/` search, `q` quit. See [`tools/jump/README.md`](tools/jump/README.md) for
+details.
+
+**Upgrades.** The engine carries a `__version__`; re-running any scaffolder
+(`./install-all.sh`, including `--only jump`) compares it against the installed
+copy and upgrades in place only when they differ. You can also self-update
+without the repo via `j update`, which downloads the latest `jump.py` from
+GitHub and atomically replaces the installed engine.
 
 ## Notes
 
@@ -112,7 +145,7 @@ All three platforms install the same core tools. Platform-specific differences n
 
 ## Neovim details
 
-## What's Included
+### What's Included
 
 | Category | Plugins |
 |----------|---------|
