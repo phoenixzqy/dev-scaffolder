@@ -98,7 +98,7 @@ add_apt_repo() {
     return
   fi
 
-  write_step "Adding apt repository: $name…"
+  write_step "Adding apt repository: ${name}…"
   as_root mkdir -p "$keyring_dir"
   curl -fsSL "$keyring" | as_root gpg --dearmor -o "$keyring_file"
   echo "$repo_line" | as_root tee "$list_file" > /dev/null

@@ -32,9 +32,9 @@ if [[ -n "$DEST_VER" && "$DEST_VER" == "$SRC_VER" ]]; then
   write_skip "j already at v$DEST_VER"
 else
   if [[ -n "$DEST_VER" ]]; then
-    write_step "Upgrading j v$DEST_VER -> v$SRC_VER…"
+    write_step "Upgrading j v$DEST_VER -> v${SRC_VER}…"
   else
-    write_step "Installing j v$SRC_VER to $JUMP_HOME…"
+    write_step "Installing j v$SRC_VER to ${JUMP_HOME}…"
   fi
   cp "$SRC" "$JUMP_HOME/jump.py"
   chmod +x "$JUMP_HOME/jump.py"

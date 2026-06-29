@@ -35,9 +35,9 @@ if ($destVer -and $destVer -eq $srcVer) {
     Write-Skip "j already at v$destVer"
 } else {
     if ($destVer) {
-        Write-Step "Upgrading j v$destVer -> v$srcVer…"
+        Write-Step "Upgrading j v$destVer -> v${srcVer}…"
     } else {
-        Write-Step "Installing j v$srcVer to $jumpHome…"
+        Write-Step "Installing j v$srcVer to ${jumpHome}…"
     }
     Copy-Item $src $destPy -Force
     Write-Ok "j engine at v$srcVer (DB lives in $jumpHome)"

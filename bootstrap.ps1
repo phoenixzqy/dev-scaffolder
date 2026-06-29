@@ -57,14 +57,14 @@ if ($Repo -match '://' -or $Repo -match '^git@') {
 
 # ── Clone or update to the latest ───────────────────────────────────────────
 if (Test-Path (Join-Path $Dest '.git')) {
-    Say "Updating existing checkout at $Dest…"
+    Say "Updating existing checkout at ${Dest}…"
     git -C $Dest remote set-url origin $RepoUrl
     git -C $Dest fetch --quiet origin $Ref
     git -C $Dest checkout --quiet $Ref
     git -C $Dest pull --ff-only --quiet origin $Ref 2>$null
     Ok "Updated to latest '$Ref'"
 } else {
-    Say "Cloning $RepoUrl ($Ref) → $Dest…"
+    Say "Cloning $RepoUrl ($Ref) → ${Dest}…"
     New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
     git clone --branch $Ref --depth 1 $RepoUrl $Dest
     Ok "Cloned to $Dest"

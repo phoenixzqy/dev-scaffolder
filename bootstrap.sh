@@ -70,14 +70,14 @@ fi
 
 # ── Clone or update to the latest ───────────────────────────────────────────
 if [[ -d "$DEST/.git" ]]; then
-  say "Updating existing checkout at $DEST…"
+  say "Updating existing checkout at ${DEST}…"
   git -C "$DEST" remote set-url origin "$REPO_URL"
   git -C "$DEST" fetch --quiet origin "$REF"
   git -C "$DEST" checkout --quiet "$REF"
   git -C "$DEST" pull --ff-only --quiet origin "$REF" || say "Could not fast-forward; using current checkout."
   ok "Updated to latest '$REF'"
 else
-  say "Cloning $REPO_URL ($REF) → $DEST…"
+  say "Cloning $REPO_URL ($REF) → ${DEST}…"
   mkdir -p "$(dirname "$DEST")"
   git clone --branch "$REF" --depth 1 "$REPO_URL" "$DEST"
   ok "Cloned to $DEST"
