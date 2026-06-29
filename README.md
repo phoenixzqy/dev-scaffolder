@@ -1,22 +1,133 @@
 # 🖥️ Dev-Machine Scaffolder
 
-One-click reproducible setup for a fresh dev machine. Platform-specific scripts
-live under `windows/`, `macos/`, and `linux/`.
+One-click, idempotent setup for a fresh dev machine. Platform-specific scripts
+live under `windows/`, `macos/`, and `linux/`, and share a set of
+self-maintained tools under `tools/`.
+
+## Table of contents
+
+- [Quick start (one-liner)](#quick-start-one-liner)
+  - [macOS / Linux](#macos--linux)
+  - [Windows](#windows)
+  - [Passing options to the installer](#passing-options-to-the-installer)
+- [Manual install (clone then run)](#manual-install-clone-then-run)
+- [Running a subset](#running-a-subset)
+- [Layout](#layout)
+- [Tools covered](#tools-covered)
+- [`j` — directory jumper](#j--directory-jumper)
+- [Updating settings](#updating-settings)
+- [Notes](#notes)
+- [Neovim details](#neovim-details)
+  - [What's included](#whats-included)
+  - [Key bindings](#key-bindings)
+- [Testing](#testing)
 
 ---
 
-## Windows — Quick start
+## Quick start (one-liner)
+
+The fastest path — no manual cloning. The bootstrap script installs `git` if
+needed, clones (or updates) the repo to the latest version, and runs the
+installer for your platform.
+
+### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.sh | bash
+```
+
+### Windows
+
+In PowerShell:
 
 ```powershell
+irm https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.ps1 | iex
+```
+
+> **Security tip:** piping a script straight into a shell runs remote code. If
+> you'd rather read it first, download then run:
+>
+> ```bash
+> # macOS / Linux
+> curl -fsSL https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.sh -o bootstrap.sh
+> less bootstrap.sh        # review
+> bash bootstrap.sh
+> ```
+>
+> ```powershell
+> # Windows
+> irm https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.ps1 -OutFile bootstrap.ps1
+> notepad bootstrap.ps1    # review
+> .\bootstrap.ps1
+> ```
+
+### Passing options to the installer
+
+Any arguments after the bootstrap script are forwarded to the platform
+installer (see [Running a subset](#running-a-subset)):
+
+```bash
+# macOS / Linux — note the `-s --` to pass args through the pipe
+curl -fsSL https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.sh | bash -s -- --only jump
+```
+
+```powershell
+# Windows — download then run (irm | iex can't take args)
+irm https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.ps1 -OutFile bootstrap.ps1
+.\bootstrap.ps1 -Only jump
+```
+
+The bootstrap target is overridable with environment variables:
+`DEV_SCAFFOLDER_REPO` (owner/name or git URL), `DEV_SCAFFOLDER_REF`
+(branch/tag/commit), and `DEV_SCAFFOLDER_DEST` (clone destination).
+
+## Manual install (clone then run)
+
+Prefer to clone yourself? Each platform has its own orchestrator.
+
+```bash
+# macOS
+git clone https://github.com/phoenixzqy/dev-scaffolder ~/workspace/dev-scaffolder
+cd ~/workspace/dev-scaffolder/macos
+chmod +x install-all.sh
+./install-all.sh
+```
+
+```bash
+# Linux (Ubuntu/Debian)
+git clone https://github.com/phoenixzqy/dev-scaffolder ~/workspace/dev-scaffolder
+cd ~/workspace/dev-scaffolder/linux
+chmod +x install-all.sh
+./install-all.sh
+```
+
+```powershell
+# Windows
 git clone https://github.com/phoenixzqy/dev-scaffolder $env:USERPROFILE\workspace\dev-scaffolder
 cd $env:USERPROFILE\workspace\dev-scaffolder\windows
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 .\install-all.ps1
 ```
 
-Or run a subset:
+> **Linux note:** Tested on Ubuntu 22.04 / 24.04. Requires `sudo` for apt
+> operations. Ghostty is optional and will be skipped if the apt repo is
+> unavailable. On Ubuntu, `fd` and `bat` are available as `fdfind`/`batcat` —
+> the scaffolder creates symlinks in `~/.local/bin` for compatibility.
+
+## Running a subset
+
+Every `tools/*` script is **standalone** — run it on its own to (re)install just
+that tool. The orchestrator runs them in numeric order and accepts filters:
+
+```bash
+# macOS / Linux
+./install-all.sh --only nvim,starship,zsh-profile
+./install-all.sh --skip ghostty
+./install-all.sh --dry-run
+```
 
 ```powershell
+# Windows
 .\install-all.ps1 -Only nvim,starship,pwsh-profile
 .\install-all.ps1 -Skip windows-terminal
 .\install-all.ps1 -DryRun
@@ -60,31 +171,15 @@ linux/
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
 
+bootstrap.sh               # one-line installer (macOS/Linux): curl … | bash
+bootstrap.ps1              # one-line installer (Windows): irm … | iex
 tools/                     # shared, self-maintained cross-platform tools
   jump/jump.py             # `j` — autojump-style directory jumper (Python stdlib)
   README.md                # conventions for shared tools; installed by all 3 scaffolders
 ```
 
-Each `tools/*` script is **standalone** — run it on its own to (re)install just
-that tool. The orchestrator simply runs them in order. Config files live in
-`<platform>/configs/` as real files you can diff, edit, and review in PRs.
-
-## Updating settings
-
-Edit the real config wherever the app lives (e.g. `~/.config/starship.toml`),
-then snapshot the change back into this repo and commit:
-
-```bash
-# macOS / Linux
-./macos/capture.sh   # or ./linux/capture.sh
-git add macos/configs && git commit -m "tweak: starship palette"
-```
-
-```powershell
-# Windows
-.\windows\capture.ps1
-git add windows/configs && git commit -m "tweak: starship palette"
-```
+Config files live in `<platform>/configs/` as real files you can diff, edit, and
+review in PRs.
 
 ## Tools covered
 
@@ -136,16 +231,34 @@ copy and upgrades in place only when they differ. You can also self-update
 without the repo via `j update`, which downloads the latest `jump.py` from
 GitHub and atomically replaces the installed engine.
 
+## Updating settings
+
+Edit the real config wherever the app lives (e.g. `~/.config/starship.toml`),
+then snapshot the change back into this repo and commit:
+
+```bash
+# macOS / Linux
+./macos/capture.sh   # or ./linux/capture.sh
+git add macos/configs && git commit -m "tweak: starship palette"
+```
+
+```powershell
+# Windows
+.\windows\capture.ps1
+git add windows/configs && git commit -m "tweak: starship palette"
+```
+
 ## Notes
 
 - **Idempotent.** Re-running is safe; installers skip packages that are already present.
 - **No admin required.** Fonts register per-user; packages install at user scope.
 - **Secrets are never committed.** `gh auth` tokens (`hosts.yml`) are deliberately excluded — run `gh auth login` once after install.
-- **Backups.** Any existing target config is renamed to `<name>.bak.<timestamp>` before a deploy.
+- **Backups.** Any existing target config is renamed to `<name>.bak.<timestamp>` before a deploy. Neovim's `~/.config/nvim` (macOS/Linux) or `%LOCALAPPDATA%\nvim` (Windows) is backed up the same way.
+- **Leader key** in Neovim is `\` (backslash); requires Neovim 0.11+ for the `vim.lsp.config` API.
 
 ## Neovim details
 
-### What's Included
+### What's included
 
 | Category | Plugins |
 |----------|---------|
@@ -164,6 +277,24 @@ GitHub and atomically replaces the installed engine.
 | **Markdown** | markdown-preview.nvim |
 | **AI** | copilot.vim + CopilotChat.nvim |
 | **Classic Vim** | vim-surround, rainbow |
+
+### Key bindings
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+N` | Toggle file tree |
+| `Ctrl+P` | Fuzzy file finder (fzf) |
+| `\f` | Ripgrep project-wide search |
+| `\ff` | Telescope find files |
+| `\fg` | Telescope live grep |
+| `\fb` | Telescope buffers |
+| `F1-F9` | Go to buffer 1-9 |
+| `Shift+←/→` | Cycle buffers |
+| `Ctrl+↑/↓/←/→` | Navigate viewports |
+| `gd / gr / K` | LSP: definition / references / hover |
+| `\rn / \ca` | LSP: rename / code action |
+| `\cc` | Toggle Copilot Chat |
+| `\mp` | Toggle Markdown preview |
 
 ## Testing
 
@@ -198,67 +329,3 @@ Re-running any `windows/tools/*.ps1` on a machine that already has the tool inst
 .\windows\tools\10-git.ps1       # prints "Git (already present)"
 .\windows\tools\40-fonts.ps1     # prints "JetBrainsMono Nerd Font (already present)"
 ```
-
-## macOS — Quick start
-
-```bash
-git clone https://github.com/phoenixzqy/dev-scaffolder ~/workspace/dev-scaffolder
-cd ~/workspace/dev-scaffolder/macos
-chmod +x install-all.sh
-./install-all.sh
-```
-
-Or run a subset:
-
-```bash
-./install-all.sh --only nvim,starship,zsh-profile
-./install-all.sh --skip ghostty
-./install-all.sh --dry-run
-```
-
-## Linux (Ubuntu/Debian) — Quick start
-
-```bash
-git clone https://github.com/phoenixzqy/dev-scaffolder ~/workspace/dev-scaffolder
-cd ~/workspace/dev-scaffolder/linux
-chmod +x install-all.sh
-./install-all.sh
-```
-
-Or run a subset:
-
-```bash
-./install-all.sh --only nvim,starship,zsh-profile
-./install-all.sh --skip ghostty
-./install-all.sh --dry-run
-```
-
-> **Note:** Tested on Ubuntu 22.04 / 24.04. Requires `sudo` for apt operations.
-> Ghostty is optional and will be skipped if the apt repo is unavailable.
-> On Ubuntu, `fd` and `bat` are available as `fdfind`/`batcat` — the scaffolder
-> creates symlinks in `~/.local/bin` for compatibility.
-
-## Neovim key bindings
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+N` | Toggle file tree |
-| `Ctrl+P` | Fuzzy file finder (fzf) |
-| `\f` | Ripgrep project-wide search |
-| `\ff` | Telescope find files |
-| `\fg` | Telescope live grep |
-| `\fb` | Telescope buffers |
-| `F1-F9` | Go to buffer 1-9 |
-| `Shift+←/→` | Cycle buffers |
-| `Ctrl+↑/↓/←/→` | Navigate viewports |
-| `gd / gr / K` | LSP: definition / references / hover |
-| `\rn / \ca` | LSP: rename / code action |
-| `\cc` | Toggle Copilot Chat |
-| `\mp` | Toggle Markdown preview |
-
-## Notes
-
-- Backs up existing `~/.config/nvim` (macOS) or `%LOCALAPPDATA%\nvim` (Windows) before overwriting
-- Installs JetBrainsMono Nerd Font for proper icon rendering
-- Leader key is `\` (backslash)
-- Requires Neovim 0.11+ for `vim.lsp.config` API
