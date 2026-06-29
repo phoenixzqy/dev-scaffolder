@@ -20,9 +20,11 @@ j update         # self-update to the latest release
 
 ### The picker (`j` with no arguments)
 
-A numbered table of saved paths is shown. Each row lists the **path** (aligned to
-the left) and, flushed to the right edge, its **jump count** and the **date it
-was added** — e.g. `12×  2026-06-29 18:09`. Entries are ordered:
+A full-width, numbered table of saved paths is shown under a column header
+(`#`, `Path`, `Count`, `Date / Time`). Each row lists the **path** (aligned to
+the left) and, in fixed-width columns flushed to the right edge, its **jump
+count** and the **date it was added** — e.g. `12×   2026-06-29 18:09`. Entries
+are ordered:
 
 1. **pinned** entries first, then
 2. by **jump count** (most-jumped first), then
@@ -41,8 +43,8 @@ Navigate and act with:
 | `/` | open a Vim-style search box; type to filter live |
 | `q` / `esc` | quit without jumping |
 
-All available actions are always shown in a footer pinned to the bottom of the
-screen.
+All available actions are always shown in a full-width footer pinned to the
+bottom of the screen.
 
 ## How it works
 

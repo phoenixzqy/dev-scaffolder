@@ -32,7 +32,7 @@ import shutil
 import sys
 import time
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 IS_WINDOWS = os.name == "nt"
 
@@ -423,10 +423,33 @@ class Selector:
             return text[:1]
         return text[: width - 1] + "…"
 
+    # Right-hand metadata columns (fixed widths so everything lines up).
+    COUNT_W = 6  # right-justified jump count, e.g. "  12×"
+    DATE_W = 16  # "YYYY-MM-DD HH:MM"
+    COL_GAP = 3  # padding between the count and date columns
+    LEFT_GAP = 3  # minimum padding between the path and the count column
+
+    def _right_block(self, count_text: str, date_text: str) -> str:
+        """Format the fixed-width count + date columns (used by rows and header)."""
+        return count_text.rjust(self.COUNT_W) + (" " * self.COL_GAP) + date_text.ljust(self.DATE_W)
+
+    def _header_row(self, cols: int) -> str:
+        """A bold, underlined column-header row spanning the full width."""
+        left = "{}{:>2}  {}{}".format("  ", "#", "  ", "Path")
+        right = self._right_block("Count", "Date / Time")
+        avail_left = cols - len(right) - self.LEFT_GAP
+        if avail_left < 8:
+            line = self._clip(left, cols).ljust(cols)
+        else:
+            left = self._clip(left, avail_left)
+            line = (left + (" " * (cols - len(left) - len(right))) + right)[:cols].ljust(cols)
+        return "\x1b[1m\x1b[4m" + line + "\x1b[0m"
+
     def _format_row(self, entry: dict, number: int, selected: bool, cols: int) -> str:
         """Render one table row: path on the left, count + date flushed right.
 
         Missing directories are shown in red; the selected row is reverse-video.
+        Rows always fill the full terminal width so highlights span edge-to-edge.
         """
         missing = not os.path.isdir(entry["path"])
         prefix = "> " if selected else "  "
@@ -438,12 +461,11 @@ class Selector:
             if entry["added"]
             else "—"
         )
-        right = "{}×  {}".format(entry["count"], date)
+        right = self._right_block("{}×".format(entry["count"]), date)
 
-        gap = 2
-        avail_left = cols - len(right) - gap
+        avail_left = cols - len(right) - self.LEFT_GAP
         if avail_left < 8:  # too narrow for a metadata column — just show the path
-            text = self._clip(left, cols)
+            text = self._clip(left, cols).ljust(cols)
             if missing:
                 text = "\x1b[31m" + text + "\x1b[39m"
             return "\x1b[7m" + text + "\x1b[27m" if selected else text
@@ -457,11 +479,11 @@ class Selector:
 
     def render(self, term: Terminal, items: list) -> None:
         cols, rows = shutil.get_terminal_size((80, 24))
-        rows = max(rows, 4)
+        rows = max(rows, 5)
         cols = max(cols, 10)
-        # Reserve the top row for the header and the bottom two rows for the
-        # divider + footer; the body fills everything in between.
-        body_rows = max(1, rows - 3)
+        # Reserve: title row, column-header row, divider + footer (bottom two).
+        # The scrollable body fills everything in between.
+        body_rows = max(1, rows - 4)
 
         start = 0
         if self.index >= body_rows:
@@ -478,19 +500,21 @@ class Selector:
         while len(body) < body_rows:
             body.append("")
 
-        header = "\x1b[1m" + self._clip(" j — jump to directory", cols) + "\x1b[0m"
-        divider = "\x1b[2m" + ("─" * min(cols, 70)) + "\x1b[0m"
+        title = "\x1b[1m" + self._clip(" j — jump to directory", cols) + "\x1b[0m"
+        col_header = self._header_row(cols)
+        divider = "\x1b[2m" + ("─" * cols) + "\x1b[0m"
         if self.search_mode:
-            footer = "\x1b[33m" + self._clip(" /" + self.query, cols - 22) + "\x1b[0m" + (
-                "\x1b[7m \x1b[0m  \x1b[2m(enter=apply • esc=clear)\x1b[0m"
-            )
+            prompt = " /" + self.query + "▏"
+            hint = "   (enter=apply • esc=clear)"
+            plain = self._clip(prompt + hint, cols).ljust(cols)
+            footer = "\x1b[33m" + plain + "\x1b[0m"
         else:
             hint = " ↑/↓ move • enter jump • d delete • p pin • u unpin • / search • q quit"
             if self.query:
                 hint = " [filter: {}]".format(self.query) + hint
-            footer = "\x1b[2m" + self._clip(hint, cols) + "\x1b[0m"
+            footer = "\x1b[2m" + self._clip(hint, cols).ljust(cols) + "\x1b[0m"
 
-        screen = [header] + body[:body_rows] + [divider, footer]
+        screen = [title, col_header] + body[:body_rows] + [divider, footer]
         # Reset + clear each line (\x1b[0m\x1b[K) to scrub stale content/styling; no
         # trailing newline so the footer lands on the last row without scrolling.
         out = "\x1b[H" + "\r\n".join(line + "\x1b[0m\x1b[K" for line in screen) + "\x1b[J"
