@@ -11,15 +11,14 @@ if [[ -d "$HOME/.oh-my-zsh" ]]; then
   git -C "$HOME/.oh-my-zsh" pull --rebase --quiet 2>/dev/null && write_ok "Oh My Zsh updated" || write_ok "Oh My Zsh is up to date"
 else
   write_step "Installing Oh My Zsh…"
-  local tmp
-  tmp="$(mktemp)"
-  if ! curl -fsSL -o "$tmp" https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh; then
-    rm -f "$tmp"
+  tmp_omz="$(mktemp)"
+  if ! curl -fsSL -o "$tmp_omz" https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh; then
+    rm -f "$tmp_omz"
     write_warn "Failed to download Oh My Zsh installer"
     exit 1
   fi
-  RUNZSH=no KEEP_ZSHRC=yes sh "$tmp" --unattended
-  rm -f "$tmp"
+  RUNZSH=no KEEP_ZSHRC=yes sh "$tmp_omz" --unattended
+  rm -f "$tmp_omz"
   write_ok "Oh My Zsh installed"
 fi
 
