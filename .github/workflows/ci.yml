@@ -243,7 +243,7 @@ jobs:
       - name: Live install — git + aliases (real apt install)
         run: |
           chmod +x linux/tools/10-git.sh
-          sudo bash linux/tools/10-git.sh
+          bash linux/tools/10-git.sh
           git config --global alias.l &>/dev/null || { echo "alias.l not set"; exit 1; }
           git config --global alias.s &>/dev/null || { echo "alias.s not set"; exit 1; }
           git config --global alias.la &>/dev/null || { echo "alias.la not set"; exit 1; }
