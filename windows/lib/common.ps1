@@ -33,6 +33,23 @@ function Test-Command {
     [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Get-WorkingPython {
+    # Windows ships "python"/"python3" App Execution Alias stubs in
+    # %LOCALAPPDATA%\Microsoft\WindowsApps that satisfy Test-Command / Get-Command
+    # but exit 9009 with a "Python was not found; run without arguments to
+    # install from the Microsoft Store" message when no real interpreter is on
+    # PATH ahead of them. Actually invoke each candidate so we only return a
+    # command name that truly runs.
+    foreach ($name in @("python3", "python")) {
+        if (-not (Test-Command $name)) { continue }
+        try {
+            & $name --version *> $null
+            if ($LASTEXITCODE -eq 0) { return $name }
+        } catch { }
+    }
+    return $null
+}
+
 function Ensure-Dir {
     param([Parameter(Mandatory)][string]$Path)
     if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }

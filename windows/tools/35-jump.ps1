@@ -13,7 +13,8 @@ if (-not (Test-Path $src)) {
     exit 1
 }
 
-if (-not (Test-Command python)) {
+$pyCmd = Get-WorkingPython
+if (-not $pyCmd) {
     Write-Warn2 "python not found — run tools/25-python.ps1 first."
     exit 1
 }
@@ -50,13 +51,35 @@ $initPs1 = @'
 # `cd` must run in this shell, so `j` is a function: bare `j` opens a picker
 # and we Set-Location into whatever path it prints; anything else is forwarded.
 $env:JUMP_HOME = Join-Path $env:LOCALAPPDATA 'dev-scaffolder\jump'
+
+# Windows ships "python"/"python3" App Execution Alias stubs (in
+# %LOCALAPPDATA%\Microsoft\WindowsApps) that satisfy Get-Command but exit 9009
+# with "Python was not found; run without arguments to install from the
+# Microsoft Store" when no real interpreter sits ahead of them on PATH.
+# Resolve to a command that actually runs, once per shell session.
+function Get-JumpPython {
+  foreach ($name in @('python3', 'python')) {
+    if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { continue }
+    try {
+      & $name --version *> $null
+      if ($LASTEXITCODE -eq 0) { return $name }
+    } catch { }
+  }
+  return $null
+}
+$script:JumpPython = Get-JumpPython
+
 function j {
+  if (-not $script:JumpPython) {
+    Write-Host "j: no working python interpreter on PATH — run tools/25-python.ps1, then restart your shell." -ForegroundColor Yellow
+    return
+  }
   $jumpScript = Join-Path $env:JUMP_HOME 'jump.py'
   if ($args.Count -eq 0) {
-    $target = & python $jumpScript select
+    $target = & $script:JumpPython $jumpScript select
     if ($LASTEXITCODE -eq 0 -and $target) { Set-Location $target }
   } else {
-    & python $jumpScript @args
+    & $script:JumpPython $jumpScript @args
   }
 }
 '@
