@@ -11,13 +11,29 @@
 # Overridable via environment variables:
 #   DEV_SCAFFOLDER_REPO   owner/name or full git URL   (default: phoenixzqy/dev-scaffolder)
 #   DEV_SCAFFOLDER_REF    branch / tag / commit         (default: main)
-#   DEV_SCAFFOLDER_DEST   clone destination             (default: ~/workspace/dev-scaffolder)
+#   DEV_SCAFFOLDER_DEST   clone destination             (default: a temp dir, removed after install)
+#
+# By default the repo is cloned into a throwaway OS temp directory and removed
+# once the installer finishes, leaving no checkout behind. Set
+# DEV_SCAFFOLDER_DEST to keep a persistent checkout at that path instead.
 # ============================================================================
 set -euo pipefail
 
 REPO="${DEV_SCAFFOLDER_REPO:-phoenixzqy/dev-scaffolder}"
 REF="${DEV_SCAFFOLDER_REF:-main}"
-DEST="${DEV_SCAFFOLDER_DEST:-$HOME/workspace/dev-scaffolder}"
+
+# When DEV_SCAFFOLDER_DEST is unset we clone into a throwaway temp dir and
+# remove it afterwards (a clean, ephemeral install). When it is set we keep a
+# persistent checkout at that path (clone-or-update, no cleanup).
+if [[ -n "${DEV_SCAFFOLDER_DEST:-}" ]]; then
+  DEST="$DEV_SCAFFOLDER_DEST"
+  EPHEMERAL=0
+else
+  DEST="$(mktemp -d "${TMPDIR:-/tmp}/dev-scaffolder.XXXXXX")"
+  EPHEMERAL=1
+  cleanup() { rm -rf "$DEST"; }
+  trap cleanup EXIT
+fi
 
 # ── Output helpers ──────────────────────────────────────────────────────────
 say()  { printf '\033[36m▸ %s\033[0m\n' "$1"; }
@@ -90,4 +106,9 @@ chmod +x "$INSTALLER" 2>/dev/null || true
 
 say "Running $PLATFORM installer…"
 cd "$DEST/$PLATFORM"
-exec bash "./install-all.sh" "$@"
+bash "./install-all.sh" "$@"
+
+if [[ "$EPHEMERAL" -eq 1 ]]; then
+  cd /
+  ok "Clean install complete — temporary checkout removed."
+fi

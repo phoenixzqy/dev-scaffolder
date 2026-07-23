@@ -13,7 +13,11 @@
   Overridable via environment variables:
     DEV_SCAFFOLDER_REPO   owner/name or full git URL  (default: phoenixzqy/dev-scaffolder)
     DEV_SCAFFOLDER_REF    branch / tag / commit        (default: main)
-    DEV_SCAFFOLDER_DEST   clone destination            (default: ~\workspace\dev-scaffolder)
+    DEV_SCAFFOLDER_DEST   clone destination            (default: a temp dir, removed after install)
+
+  By default the repo is cloned into a throwaway temp directory and removed once
+  the installer finishes, leaving no checkout behind. Set DEV_SCAFFOLDER_DEST to
+  keep a persistent checkout at that path instead.
 #>
 [CmdletBinding()]
 param([Parameter(ValueFromRemainingArguments = $true)] $InstallerArgs)
@@ -22,7 +26,17 @@ $ErrorActionPreference = 'Stop'
 
 $Repo = if ($env:DEV_SCAFFOLDER_REPO) { $env:DEV_SCAFFOLDER_REPO } else { 'phoenixzqy/dev-scaffolder' }
 $Ref  = if ($env:DEV_SCAFFOLDER_REF)  { $env:DEV_SCAFFOLDER_REF }  else { 'main' }
-$Dest = if ($env:DEV_SCAFFOLDER_DEST) { $env:DEV_SCAFFOLDER_DEST } else { Join-Path $env:USERPROFILE 'workspace\dev-scaffolder' }
+
+# When DEV_SCAFFOLDER_DEST is unset we clone into a throwaway temp dir and remove
+# it afterwards (a clean, ephemeral install). When it is set we keep a persistent
+# checkout at that path (clone-or-update, no cleanup).
+if ($env:DEV_SCAFFOLDER_DEST) {
+    $Dest = $env:DEV_SCAFFOLDER_DEST
+    $Ephemeral = $false
+} else {
+    $Dest = Join-Path ([System.IO.Path]::GetTempPath()) ("dev-scaffolder-" + [System.IO.Path]::GetRandomFileName())
+    $Ephemeral = $true
+}
 
 function Say  { param([string]$m) Write-Host "▸ $m" -ForegroundColor Cyan }
 function Ok   { param([string]$m) Write-Host "  ✓ $m" -ForegroundColor Green }
@@ -75,5 +89,13 @@ $installer = Join-Path $Dest 'windows\install-all.ps1'
 if (-not (Test-Path $installer)) { Die "Installer not found: $installer" }
 
 Say "Running Windows installer…"
-Set-Location (Join-Path $Dest 'windows')
-& $installer @InstallerArgs
+try {
+    Set-Location (Join-Path $Dest 'windows')
+    & $installer @InstallerArgs
+} finally {
+    if ($Ephemeral) {
+        Set-Location $env:USERPROFILE
+        Remove-Item -Recurse -Force $Dest -ErrorAction SilentlyContinue
+        Ok "Clean install complete — temporary checkout removed."
+    }
+}

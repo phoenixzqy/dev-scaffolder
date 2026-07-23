@@ -27,8 +27,9 @@ self-maintained tools under `tools/`.
 ## Quick start (one-liner)
 
 The fastest path — no manual cloning. The bootstrap script installs `git` if
-needed, clones (or updates) the repo to the latest version, and runs the
-installer for your platform.
+needed, clones the repo into a throwaway temp directory, runs the installer for
+your platform, and then removes the temporary checkout — a clean install that
+leaves no repo behind.
 
 ### macOS / Linux
 
@@ -79,7 +80,9 @@ irm https://raw.githubusercontent.com/phoenixzqy/dev-scaffolder/main/bootstrap.p
 
 The bootstrap target is overridable with environment variables:
 `DEV_SCAFFOLDER_REPO` (owner/name or git URL), `DEV_SCAFFOLDER_REF`
-(branch/tag/commit), and `DEV_SCAFFOLDER_DEST` (clone destination).
+(branch/tag/commit), and `DEV_SCAFFOLDER_DEST` (clone destination). By default
+the checkout is cloned into a temp directory and removed after install; set
+`DEV_SCAFFOLDER_DEST` to keep a persistent checkout at that path instead.
 
 ## Manual install (clone then run)
 
