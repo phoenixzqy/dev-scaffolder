@@ -12,6 +12,7 @@ j add            # save the current directory to the DB
 j                # open the picker and cd into the chosen directory
 j list           # print saved paths (pinned first, then newest)
 j rm <path>      # remove a path
+j copy [path]    # copy a path (default: cwd) to the system clipboard
 j pin <path>     # pin a path to the top
 j unpin <path>   # unpin a path
 j version        # print the installed version
@@ -37,6 +38,7 @@ Navigate and act with:
 |-----|--------|
 | ↑ / ↓ (or `k` / `j`) | move the selection |
 | `enter` | jump into the selected directory (and bump its jump count) |
+| `c` | copy the selected path to the system clipboard |
 | `d` | delete the selected entry from the DB |
 | `p` | pin the selected entry to the top |
 | `u` | unpin the selected entry |
@@ -44,7 +46,13 @@ Navigate and act with:
 | `q` / `esc` | quit without jumping |
 
 All available actions are always shown in a full-width footer pinned to the
-bottom of the screen.
+bottom of the screen; the footer is also where transient feedback (such as the
+`c` copy confirmation) appears until the next keypress.
+
+Copying uses whatever clipboard tool the platform provides — `clip` on Windows,
+`pbcopy` on macOS, and `wl-copy` / `xclip` / `xsel` on Linux, falling back to
+`clip.exe` under WSL. If none is installed, the footer says so instead of
+failing.
 
 ## How it works
 

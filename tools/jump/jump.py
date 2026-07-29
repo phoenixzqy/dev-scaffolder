@@ -11,6 +11,7 @@ that calls this script:
                         the shell function ``cd``s into it
     j list           -> prints stored paths (newline separated)
     j rm   <path>    -> removes a path from the DB
+    j copy <path>    -> copies a path to the system clipboard
     j pin  <path>    -> pins a path to the top of the list
     j unpin <path>   -> unpins a path
     j version        -> prints the installed version
@@ -28,10 +29,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
+import subprocess
 import sys
 import time
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 IS_WINDOWS = os.name == "nt"
 
@@ -135,6 +138,55 @@ def cmd_list(_args) -> int:
     for entry in ordered(load_db()):
         print(entry["path"])
     return 0
+
+
+# ── Clipboard ───────────────────────────────────────────────────────────────
+def _clipboard_commands() -> list:
+    """Candidate clipboard writers, best first, for the current environment."""
+    if IS_WINDOWS:
+        return [["clip"]]
+    cmds = []
+    if sys.platform == "darwin":
+        cmds.append(["pbcopy"])
+    else:
+        # Wayland, then X11, then the WSL bridge to the Windows clipboard.
+        if os.environ.get("WAYLAND_DISPLAY"):
+            cmds.append(["wl-copy"])
+        if os.environ.get("DISPLAY"):
+            cmds.append(["xclip", "-selection", "clipboard"])
+            cmds.append(["xsel", "--clipboard", "--input"])
+        cmds.append(["wl-copy"])
+        cmds.append(["xclip", "-selection", "clipboard"])
+        cmds.append(["clip.exe"])
+    return cmds
+
+
+def copy_to_clipboard(text: str) -> bool:
+    """Copy *text* to the system clipboard. Returns True when it worked."""
+    for cmd in _clipboard_commands():
+        if shutil.which(cmd[0]) is None:
+            continue
+        try:
+            proc = subprocess.run(
+                cmd,
+                input=text.encode(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError:
+            continue
+        if proc.returncode == 0:
+            return True
+    return False
+
+
+def cmd_copy(args) -> int:
+    target = os.path.abspath(args.path or os.getcwd())
+    if copy_to_clipboard(target):
+        print(target)
+        return 0
+    sys.stderr.write("j: no clipboard tool found (install wl-clipboard or xclip)\n")
+    return 1
 
 
 def cmd_version(_args) -> int:
@@ -364,6 +416,7 @@ class Selector:
         self.index = 0
         self.done = False
         self.result = None  # selected path, or None on quit
+        self.status = ""  # transient footer message (e.g. clipboard feedback)
 
     def visible(self) -> list:
         items = ordered(self.entries)
@@ -383,6 +436,7 @@ class Selector:
         if self.search_mode:
             self._handle_search(key)
             return
+        self.status = ""  # any keypress clears the previous message
         if key in ("UP",) or key == ("CHAR", "k"):
             self.index -= 1
         elif key in ("DOWN",) or key == ("CHAR", "j"):
@@ -402,6 +456,8 @@ class Selector:
             self._pin(items, True)
         elif key == ("CHAR", "u"):
             self._pin(items, False)
+        elif key == ("CHAR", "c"):
+            self._copy(items)
         self._clamp(self.visible())
 
     def _handle_search(self, key) -> None:
@@ -425,6 +481,15 @@ class Selector:
             return
         self.entries = [e for e in self.entries if e["path"] != target]
         save_db(self.entries)
+
+    def _copy(self, items: list) -> None:
+        target = self._selected_path(items)
+        if target is None:
+            return
+        if copy_to_clipboard(target):
+            self.status = "copied: " + target
+        else:
+            self.status = "no clipboard tool found (install wl-clipboard or xclip)"
 
     def _pin(self, items: list, pinned: bool) -> None:
         target = self._selected_path(items)
@@ -532,8 +597,13 @@ class Selector:
             hint = "   (enter=apply • esc=clear)"
             plain = self._clip(prompt + hint, cols).ljust(cols)
             footer = "\x1b[33m" + plain + "\x1b[0m"
+        elif self.status:
+            footer = "\x1b[36m" + self._clip(" " + self.status, cols).ljust(cols) + "\x1b[0m"
         else:
-            hint = " ↑/↓ move • enter jump • d delete • p pin • u unpin • / search • q quit"
+            hint = (
+                " ↑/↓ move • enter jump • c copy • d delete • p pin • u unpin"
+                " • / search • q quit"
+            )
             if self.query:
                 hint = " [filter: {}]".format(self.query) + hint
             footer = "\x1b[2m" + self._clip(hint, cols).ljust(cols) + "\x1b[0m"
@@ -578,14 +648,17 @@ examples:
   j add /tmp/foo    save a specific directory
   j list            print saved paths (pinned, then most-jumped, then newest)
   j rm /tmp/foo     forget a directory
+  j copy            copy the current directory to the clipboard
+  j copy /tmp/foo   copy a specific path to the clipboard
   j pin /tmp/foo    pin a directory to the top
   j unpin /tmp/foo  unpin a directory
   j version         print the installed version
   j update          download and install the latest version
 
 picker keys:
-  ↑/↓ or k/j   move          enter   jump to selection
-  d            delete         p       pin          u   unpin
+  ↑/↓ or k/j   move           enter   jump to selection
+  c            copy path      d       delete
+  p            pin            u       unpin
   /            search/filter  q/esc   quit without jumping
 
 The directory list is stored as JSON next to this script (override with the
@@ -622,6 +695,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_unpin = sub.add_parser("unpin", help="unpin a directory")
     p_unpin.add_argument("path", help="directory to unpin")
     p_unpin.set_defaults(func=cmd_unpin)
+
+    p_copy = sub.add_parser("copy", help="copy a path (default: cwd) to the clipboard")
+    p_copy.add_argument("path", nargs="?", default=None, help="path to copy (default: cwd)")
+    p_copy.set_defaults(func=cmd_copy)
 
     sub.add_parser("list", help="print stored paths").set_defaults(func=cmd_list)
     sub.add_parser("select", help="open the interactive picker (default)").set_defaults(

@@ -219,6 +219,7 @@ everywhere.
 j add            # save the current directory
 j                # open the picker and cd into the chosen directory
 j list           # print saved paths
+j copy [path]    # copy a path (default: cwd) to the clipboard
 j version        # print the installed version
 j update         # self-update to the latest release
 j -h             # full help
@@ -226,8 +227,8 @@ j -h             # full help
 
 The picker shows a table — path on the left, **jump count** and **date added**
 on the right — ordered by pinned → most-jumped → newest. Missing directories are
-shown in red. Keys: `↑/↓` move, `enter` jump, `d` delete, `p` pin, `u` unpin,
-`/` search, `q` quit. See [`tools/jump/README.md`](tools/jump/README.md) for
+shown in red. Keys: `↑/↓` move, `enter` jump, `c` copy path, `d` delete,
+`p` pin, `u` unpin, `/` search, `q` quit. See [`tools/jump/README.md`](tools/jump/README.md) for
 details.
 
 **Upgrades.** The engine carries a `__version__`; re-running any scaffolder
