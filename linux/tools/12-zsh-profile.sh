@@ -48,13 +48,34 @@ fi
 # Deploy .zshrc
 deploy_config "$SCAFFOLDER_ROOT/configs/zsh/.zshrc" "$HOME/.zshrc"
 
-# Offer to change default shell to zsh
-current_shell="$(basename "$SHELL")"
-if [[ "$current_shell" != "zsh" ]]; then
+# Make zsh the default login shell (unattended).
+set_default_shell_zsh() {
+  local zsh_path
+  zsh_path="$(command -v zsh)"
+  local login_shell
+  login_shell="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
+  login_shell="${login_shell:-$SHELL}"
+
+  if [[ "$login_shell" == "$zsh_path" ]]; then
+    write_skip "zsh is the default shell"
+    return
+  fi
+
+  # zsh must be listed in /etc/shells or chsh refuses it.
+  if ! grep -qxF "$zsh_path" /etc/shells 2>/dev/null; then
+    echo "$zsh_path" | as_root tee -a /etc/shells > /dev/null
+  fi
+
   write_step "Changing default shell to zsh…"
-  chsh -s "$(command -v zsh)" 2>/dev/null || {
-    write_warn "Could not change shell automatically. Run: chsh -s \$(which zsh)"
-  }
-fi
+  # Interactive chsh prompts for a password; run it through sudo (already
+  # cached by the orchestrator) so a full install stays unattended.
+  if as_root chsh -s "$zsh_path" "$USER" 2>/dev/null; then
+    write_ok "Default shell set to zsh (takes effect on next login)"
+  else
+    write_warn "Could not change shell automatically. Run: chsh -s $zsh_path"
+  fi
+}
+ensure_sudo
+set_default_shell_zsh
 
 write_warn "Restart your shell (or run 'source ~/.zshrc') to activate."

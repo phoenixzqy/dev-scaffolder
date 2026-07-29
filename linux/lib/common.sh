@@ -117,7 +117,19 @@ backup_path() {
   local backup="${target}.bak.${stamp}"
   mv "$target" "$backup"
   write_warn "Backed up existing $target → $backup"
-  echo "$backup"
+}
+
+# True when src and dst already have identical content.
+same_content() {
+  local src="$1" dst="$2"
+  [[ -e "$dst" ]] || return 1
+  if [[ -d "$src" ]]; then
+    [[ -d "$dst" ]] || return 1
+    diff -rq "$src" "$dst" &>/dev/null
+  else
+    [[ -f "$dst" ]] || return 1
+    cmp -s "$src" "$dst"
+  fi
 }
 
 deploy_config() {
@@ -126,6 +138,10 @@ deploy_config() {
   if [[ ! -e "$src" ]]; then
     echo "ERROR: Source config not found: $src" >&2
     return 1
+  fi
+  if same_content "$src" "$dst"; then
+    write_skip "$dst"
+    return
   fi
   mkdir -p "$(dirname "$dst")"
   if [[ -e "$dst" ]]; then backup_path "$dst" || true; fi

@@ -157,9 +157,10 @@ macos/
   capture.sh               # snapshot live configs from this machine into configs/
   lib/common.sh            # shared helpers (brew, deploy, backup)
   tools/
-    00-homebrew.sh   10-git.sh   15-gh.sh   20-node.sh   25-python.sh
+    00-homebrew.sh   10-git.sh   12-zsh-profile.sh   15-gh.sh   20-node.sh
+    25-python.sh
     30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
-    60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh   90-zsh-profile.sh
+    60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
 
@@ -168,9 +169,10 @@ linux/
   capture.sh               # snapshot live configs from this machine into configs/
   lib/common.sh            # shared helpers (apt, deploy, backup, sudo)
   tools/
-    00-apt-update.sh   10-git.sh   15-gh.sh   20-node.sh   25-python.sh
+    00-apt-update.sh   10-git.sh   12-zsh-profile.sh   15-gh.sh   20-node.sh
+    25-python.sh
     30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
-    60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh   90-zsh-profile.sh
+    60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
 
