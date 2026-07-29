@@ -41,11 +41,13 @@ detect_arch() {
   local machine
   machine="$(uname -m)"
   case "$machine" in
-    x86_64)  ARCH="amd64"; ARCH_ALT="x86_64" ;;
-    aarch64) ARCH="arm64";  ARCH_ALT="aarch64" ;;
-    *)       ARCH="$machine"; ARCH_ALT="$machine" ;;
+    x86_64)  SCAFFOLDER_ARCH="amd64"; SCAFFOLDER_ARCH_ALT="x86_64" ;;
+    aarch64) SCAFFOLDER_ARCH="arm64";  SCAFFOLDER_ARCH_ALT="aarch64" ;;
+    *)       SCAFFOLDER_ARCH="$machine"; SCAFFOLDER_ARCH_ALT="$machine" ;;
   esac
-  export ARCH ARCH_ALT
+  # Namespaced on purpose: a bare exported ARCH/PLATFORM leaks into third-party
+  # installer scripts (e.g. starship's install.sh) and breaks their own detection.
+  export SCAFFOLDER_ARCH SCAFFOLDER_ARCH_ALT
 }
 detect_arch
 

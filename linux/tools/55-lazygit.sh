@@ -4,7 +4,7 @@ write_banner "Lazygit"
 
 LAZYGIT_VERSION="0.44.1"
 
-local_arch="$ARCH_ALT"  # x86_64 or aarch64
+local_arch="$SCAFFOLDER_ARCH_ALT"  # x86_64 or aarch64
 asset="lazygit_${LAZYGIT_VERSION}_Linux_${local_arch}.tar.gz"
 github_release_install "jesseduffield/lazygit" "$LAZYGIT_VERSION" "$asset" "lazygit"
 

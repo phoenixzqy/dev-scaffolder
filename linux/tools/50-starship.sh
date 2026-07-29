@@ -11,7 +11,14 @@ install_starship() {
     write_warn "Failed to download Starship installer"
     exit 1
   fi
-  sh "$tmp" --yes --bin-dir "$HOME/.local/bin"
+  # Clear ARCH/PLATFORM/BIN_DIR from the environment: the official installer
+  # honours them verbatim and skips its own detection, which yields bogus
+  # targets like "amd64-unknown-linux-musl".
+  if ! env -u ARCH -u PLATFORM -u BIN_DIR sh "$tmp" --yes --bin-dir "$HOME/.local/bin"; then
+    rm -f "$tmp"
+    write_warn "Starship installer failed"
+    exit 1
+  fi
   rm -f "$tmp"
   write_ok "Starship up to date"
 }

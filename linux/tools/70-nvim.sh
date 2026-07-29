@@ -8,7 +8,7 @@ if has_command nvim; then
     apt_install neovim "Neovim"
   else
     write_step "Updating Neovim from GitHub release…"
-    local_arch="$ARCH_ALT"
+    local_arch="$SCAFFOLDER_ARCH_ALT"
     download "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${local_arch}.appimage" \
       "$HOME/.local/bin/nvim"
     chmod +x "$HOME/.local/bin/nvim"
@@ -24,7 +24,7 @@ else
   else
     # Debian / other: install from GitHub release (AppImage)
     write_step "Installing Neovim from GitHub release…"
-    local_arch="$ARCH_ALT"
+    local_arch="$SCAFFOLDER_ARCH_ALT"
     download "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${local_arch}.appimage" \
       "$HOME/.local/bin/nvim"
     chmod +x "$HOME/.local/bin/nvim"
