@@ -17,4 +17,27 @@ else
   write_ok "Pi installed (command: pi)"
 fi
 
+plugins=(
+  "npm:pi-subagents"
+  "npm:pi-theme-switcher"
+  "npm:@milanglacier/pi-plan-mode"
+  "npm:pi-goal-list-loop-audit"
+  "npm:@vigolium/piolium"
+  "npm:pi-mcp-adapter"
+  "npm:pi-web-access"
+  "npm:pi-lens"
+)
+
+installed_plugins="$(pi list)"
+for plugin in "${plugins[@]}"; do
+  plugin_name="${plugin#npm:}"
+  if grep -Fq -- "$plugin_name" <<< "$installed_plugins"; then
+    write_skip "$plugin_name already present"
+  else
+    write_step "Installing $plugin…"
+    pi install "$plugin"
+    write_ok "Installed $plugin"
+  fi
+done
+
 write_warn "Run 'pi', then use '/login' to authenticate."
