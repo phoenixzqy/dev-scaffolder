@@ -147,7 +147,7 @@ windows/
     00-package-managers.ps1
     10-git.ps1   15-gh.ps1   20-node.ps1   25-python.ps1
     30-cli-tools.ps1   35-jump.ps1   40-fonts.ps1   50-starship.ps1   55-lazygit.ps1
-    60-copilot-cli.ps1   70-nvim.ps1   80-windows-terminal.ps1   90-pwsh-profile.ps1
+    60-copilot-cli.ps1   65-pi.ps1   70-nvim.ps1   80-windows-terminal.ps1   90-pwsh-profile.ps1
   configs/
     nvim/   starship/   windows-terminal/   lazygit/   gh/   pwsh/
   tests/
@@ -160,7 +160,7 @@ macos/
     00-homebrew.sh   10-git.sh   12-zsh-profile.sh   15-gh.sh   20-node.sh
     25-python.sh
     30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
-    60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh
+    60-copilot-cli.sh   65-pi.sh   70-nvim.sh   80-ghostty.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
 
@@ -172,7 +172,7 @@ linux/
     00-apt-update.sh   10-git.sh   12-zsh-profile.sh   15-gh.sh   20-node.sh
     25-python.sh
     30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
-    60-copilot-cli.sh   70-nvim.sh   80-ghostty.sh
+    60-copilot-cli.sh   65-pi.sh   70-nvim.sh   80-ghostty.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
 
@@ -203,6 +203,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 50 | Starship prompt | `Starship.Starship` | `starship` | curl installer | `~/.config/starship.toml` |
 | 55 | Lazygit | scoop `extras/lazygit` | `lazygit` | GitHub release | `config.yml` |
 | 60 | GitHub Copilot CLI | `npm i -g @github/copilot` | same | same | — |
+| 65 | Pi Coding Agent | `npm i -g @earendil-works/pi-coding-agent` | same | same | — |
 | 70 | Neovim + plugins | `Neovim.Neovim` | `neovim` | PPA / AppImage | `nvim/` config dir |
 | 80 | Terminal | Windows Terminal | Ghostty | Ghostty (optional) | `settings.json` / `config` |
 | 90 | Shell profile | PowerShell profile | zsh + Oh My Zsh | zsh + Oh My Zsh | `$PROFILE` / `.zshrc` |
