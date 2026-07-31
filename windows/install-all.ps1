@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # Windows Dev-Machine Scaffolder — Orchestrator
 # Installs every tool (in the right order) and deploys every config.
 #

@@ -83,6 +83,11 @@ The repo-root `tools/` folder holds **our own** utilities that are installed by
 - Use `Write-Banner`, `Write-Step`, `Write-Ok`, `Write-Skip`, `Write-Warn2`
   for consistent output.
 - All scripts must be `#Requires -Version 5.1`.
+- **Every `.ps1` file must be saved as UTF-8 *with* a BOM.** Windows PowerShell
+  5.1 decodes BOM-less files as ANSI (cp1252), which mangles non-ASCII glyphs.
+  An em dash (`—`, U+2014 = `E2 80 94`) decodes to `â€”`, whose trailing `”` is a
+  smart quote that 5.1 honours as a string delimiter — the literal terminates
+  early and the file stops parsing. Enforced by a Pester test.
 - Scripts must be idempotent — re-running on a machine that already has the
   tool installed should be a no-op (print "already present" and return).
 

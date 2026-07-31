@@ -1,4 +1,4 @@
-# Pester 5 tests for install-all.ps1 (orchestrator) and repo layout invariants.
+﻿# Pester 5 tests for install-all.ps1 (orchestrator) and repo layout invariants.
 #Requires -Version 5.1
 #Requires -Modules @{ ModuleName='Pester'; ModuleVersion='5.0.0' }
 
@@ -16,6 +16,9 @@ $AllScriptsCases = Get-ChildItem $DiscoveryRoot -Recurse -Filter *.ps1 -File |
     ForEach-Object { @{ name = $_.FullName.Substring($DiscoveryRoot.Length + 1); path = $_.FullName } }
 $ToolScriptCases = Get-ChildItem $DiscoveryTools -Filter "*.ps1" |
     ForEach-Object { @{ name = $_.Name; path = $_.FullName } }
+# Includes configs/ — a mangled deployed profile breaks the user's shell too.
+$EveryScriptCases = Get-ChildItem $DiscoveryRoot -Recurse -Filter *.ps1 -File |
+    ForEach-Object { @{ name = $_.FullName.Substring($DiscoveryRoot.Length + 1); path = $_.FullName } }
 
 Describe "Repo layout" {
     It "has the orchestrator" { Test-Path $script:Installer | Should -BeTrue }
@@ -38,6 +41,18 @@ Describe "All .ps1 files parse without syntax errors" {
             $errs | ForEach-Object { Write-Host "  $_" }
         }
         ($errs.Count) | Should -Be 0
+    }
+}
+
+# Windows PowerShell 5.1 decodes BOM-less files as ANSI (cp1252), which mangles
+# every non-ASCII glyph. An em dash (U+2014 = E2 80 94) becomes 'â€”' — and that
+# trailing U+201D is a smart quote that 5.1 honours as a string delimiter, so the
+# literal terminates early and the file stops parsing. A BOM prevents all of it.
+Describe "Every .ps1 is UTF-8 with a BOM (Windows PowerShell 5.1 safety)" {
+    It "<name>" -ForEach $EveryScriptCases {
+        $bytes = [System.IO.File]::ReadAllBytes($path)
+        $bytes.Length | Should -BeGreaterThan 2
+        @($bytes[0], $bytes[1], $bytes[2]) -join ',' | Should -Be '239,187,191'
     }
 }
 

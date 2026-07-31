@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # capture.ps1 — Re-snapshot live configs from the current machine into configs/
 # Run this whenever you tweak a tool's settings and want the scaffolder to
 # pick up the change. Commit the resulting diff.

@@ -1,4 +1,4 @@
-# Ensure winget is present; bootstrap scoop + extras bucket.
+﻿# Ensure winget is present; bootstrap scoop + extras bucket.
 #Requires -Version 5.1
 . "$PSScriptRoot\..\lib\common.ps1"
 

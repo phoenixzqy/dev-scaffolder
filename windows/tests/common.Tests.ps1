@@ -1,4 +1,4 @@
-# Pester 5 tests for lib/common.ps1 helpers. Safe — everything runs in $TestDrive.
+﻿# Pester 5 tests for lib/common.ps1 helpers. Safe — everything runs in $TestDrive.
 #Requires -Version 5.1
 #Requires -Modules @{ ModuleName='Pester'; ModuleVersion='5.0.0' }
 

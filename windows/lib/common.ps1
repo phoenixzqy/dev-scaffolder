@@ -1,4 +1,4 @@
-# Shared helpers for the scaffolder. Dot-source from every tools/*.ps1 script.
+﻿# Shared helpers for the scaffolder. Dot-source from every tools/*.ps1 script.
 #Requires -Version 5.1
 
 $ErrorActionPreference = "Stop"

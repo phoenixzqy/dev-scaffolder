@@ -1,4 +1,4 @@
-# Run all Pester tests. Works with Pester 5+.
+﻿# Run all Pester tests. Works with Pester 5+.
 #Requires -Version 5.1
 [CmdletBinding()] param(
     [switch]$CI
