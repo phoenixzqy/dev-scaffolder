@@ -19,7 +19,7 @@ fi
 
 plugins=(
   "npm:pi-subagents"
-  "npm:pi-theme-switcher"
+  "npm:@codewithkenzo/pi-theme-switcher"
   "npm:@milanglacier/pi-plan-mode"
   "npm:pi-goal-list-loop-audit"
   "npm:@vigolium/piolium"

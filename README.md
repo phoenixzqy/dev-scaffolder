@@ -208,7 +208,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 80 | Terminal | Windows Terminal | Ghostty | Ghostty (optional) | `settings.json` / `config` |
 | 90 | Shell profile | PowerShell profile | zsh + Oh My Zsh | zsh + Oh My Zsh | `$PROFILE` / `.zshrc` |
 
-The Pi step also installs `pi-subagents`, `pi-theme-switcher`,
+The Pi step also installs `pi-subagents`, `@codewithkenzo/pi-theme-switcher`,
 `@milanglacier/pi-plan-mode`, `pi-goal-list-loop-audit`, `@vigolium/piolium`,
 `pi-mcp-adapter`, `pi-web-access`, and `pi-lens`. Already-installed Pi packages
 are skipped on subsequent runs.
