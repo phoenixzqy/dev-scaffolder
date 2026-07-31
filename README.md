@@ -210,7 +210,8 @@ All three platforms install the same core tools. Platform-specific differences n
 
 The Pi step also installs `pi-subagents`, `@codewithkenzo/pi-theme-switcher`,
 `@milanglacier/pi-plan-mode`, `pi-goal-list-loop-audit`, `@vigolium/piolium`,
-`pi-mcp-adapter`, and `pi-web-access`. Already-installed Pi packages
+`pi-mcp-adapter`, `pi-web-access`, `@juicesharp/rpiv-todo`, and
+`@ff-labs/pi-fff`. Already-installed Pi packages
 are skipped on subsequent runs.
 
 ## `j` — directory jumper

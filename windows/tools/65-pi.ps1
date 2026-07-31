@@ -29,6 +29,8 @@ $plugins = @(
     "npm:@vigolium/piolium"
     "npm:pi-mcp-adapter"
     "npm:pi-web-access"
+    "npm:@juicesharp/rpiv-todo"
+    "npm:@ff-labs/pi-fff"
 )
 
 $installedPlugins = & pi list 2>$null | Out-String

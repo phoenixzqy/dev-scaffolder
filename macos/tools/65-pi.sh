@@ -25,6 +25,8 @@ plugins=(
   "npm:@vigolium/piolium"
   "npm:pi-mcp-adapter"
   "npm:pi-web-access"
+  "npm:@juicesharp/rpiv-todo"
+  "npm:@ff-labs/pi-fff"
 )
 
 installed_plugins="$(pi list)"
