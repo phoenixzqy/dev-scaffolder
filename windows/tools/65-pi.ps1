@@ -31,6 +31,7 @@ $plugins = @(
     "npm:pi-web-access"
     "npm:@juicesharp/rpiv-todo"
     "npm:@ff-labs/pi-fff"
+    "npm:pi-ask-user"
 )
 
 $installedPlugins = & pi list 2>$null | Out-String
