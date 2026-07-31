@@ -25,7 +25,6 @@ plugins=(
   "npm:@vigolium/piolium"
   "npm:pi-mcp-adapter"
   "npm:pi-web-access"
-  "npm:pi-lens"
 )
 
 installed_plugins="$(pi list)"

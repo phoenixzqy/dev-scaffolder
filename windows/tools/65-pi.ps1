@@ -29,7 +29,6 @@ $plugins = @(
     "npm:@vigolium/piolium"
     "npm:pi-mcp-adapter"
     "npm:pi-web-access"
-    "npm:pi-lens"
 )
 
 $installedPlugins = & pi list 2>$null | Out-String
