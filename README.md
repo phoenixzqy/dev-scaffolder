@@ -15,6 +15,7 @@ self-maintained tools under `tools/`.
 - [Layout](#layout)
 - [Tools covered](#tools-covered)
 - [`j` — directory jumper](#j--directory-jumper)
+- [Devbox SSH](#devbox-ssh)
 - [Updating settings](#updating-settings)
 - [Notes](#notes)
 - [Neovim details](#neovim-details)
@@ -146,7 +147,7 @@ windows/
   tools/
     00-package-managers.ps1
     10-git.ps1   15-gh.ps1   20-node.ps1   25-python.ps1
-    30-cli-tools.ps1   35-jump.ps1   40-fonts.ps1   50-starship.ps1   55-lazygit.ps1
+    30-cli-tools.ps1   35-jump.ps1   36-ssh-script.ps1   40-fonts.ps1   50-starship.ps1   55-lazygit.ps1
     60-copilot-cli.ps1   65-pi.ps1   70-nvim.ps1   80-windows-terminal.ps1   90-pwsh-profile.ps1
   configs/
     nvim/   starship/   windows-terminal/   lazygit/   gh/   pwsh/
@@ -159,7 +160,7 @@ macos/
   tools/
     00-homebrew.sh   10-git.sh   12-zsh-profile.sh   15-gh.sh   20-node.sh
     25-python.sh
-    30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
+    30-cli-tools.sh   35-jump.sh   36-ssh-script.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
     60-copilot-cli.sh   65-pi.sh   70-nvim.sh   80-ghostty.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
@@ -171,7 +172,7 @@ linux/
   tools/
     00-apt-update.sh   10-git.sh   12-zsh-profile.sh   15-gh.sh   20-node.sh
     25-python.sh
-    30-cli-tools.sh   35-jump.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
+    30-cli-tools.sh   35-jump.sh   36-ssh-script.sh   40-fonts.sh   50-starship.sh   55-lazygit.sh
     60-copilot-cli.sh   65-pi.sh   70-nvim.sh   80-ghostty.sh
   configs/
     nvim/   starship/   ghostty/   lazygit/   gh/   zsh/
@@ -180,6 +181,7 @@ bootstrap.sh               # one-line installer (macOS/Linux): curl … | bash
 bootstrap.ps1              # one-line installer (Windows): irm … | iex
 tools/                     # shared, self-maintained cross-platform tools
   jump/jump.py             # `j` — autojump-style directory jumper (Python stdlib)
+  ssh-script/              # Devbox SSH — server setup, named connections, Windows/WSL helpers
   README.md                # conventions for shared tools; installed by all 3 scaffolders
 ```
 
@@ -199,6 +201,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 25 | Python 3 + packages | `Python.Python.3.12` | `python3` | `python3` | — |
 | 30 | rg, fd, fzf, bat, zoxide, cmake | winget | brew | apt + curl | — |
 | 35 | `j` directory jumper | our own (Python) | our own (Python) | our own (Python) | `j` shell function |
+| 36 | Devbox SSH | our own (Python + PowerShell helpers) | our own (Python) | our own (Python) | Per-user tool copy; SSH setup is explicit |
 | 40 | JetBrainsMono Nerd Font | nerd-fonts zip | brew cask | nerd-fonts zip | — |
 | 50 | Starship prompt | `Starship.Starship` | `starship` | curl installer | `~/.config/starship.toml` |
 | 55 | Lazygit | scoop `extras/lazygit` | `lazygit` | GitHub release | `config.yml` |
@@ -243,6 +246,29 @@ details.
 copy and upgrades in place only when they differ. You can also self-update
 without the repo via `j update`, which downloads the latest `jump.py` from
 GitHub and atomically replaces the installed engine.
+
+## Devbox SSH
+
+`tools/ssh-script/` provides automatic Windows/macOS/Linux/WSL detection,
+explicit SSH server setup, named keys, and shortcuts such as `ssh dev1`.
+See its [setup and connection quick start](tools/ssh-script/README.md#quick-start).
+
+Install only this tool from the repository root (Python must already be installed):
+
+```sh
+bash linux/tools/36-ssh-script.sh  # Linux/WSL; use macos/ on a Mac
+```
+
+```powershell
+.\windows\tools\36-ssh-script.ps1
+```
+
+Full scaffolder runs also copy it automatically, and support `--only ssh-script`
+on Unix or `-Only ssh-script` on Windows. These installers are per-user and
+version-aware; they do not enable SSH or change firewalls. Run `setup --apply`
+on each devbox to enable its server, then `add` on your local device to save
+connection names. WSL2 NAT connections also need the supplied Windows forwarding
+helper, as described in the tool's README.
 
 ## Updating settings
 

@@ -29,3 +29,9 @@ Each tool lives in its own subfolder and is installed by a matching
 | Tool | Folder | Command | What it does |
 |------|--------|---------|--------------|
 | jump | `tools/jump/` | `j` | A tiny autojump-style directory jumper with a TUI picker. |
+| Devbox SSH | `tools/ssh-script/` | `python3 devbox.py`, `ssh <name>` | Detects Windows/macOS/Linux/WSL, sets up SSH servers, and saves named connections. See [quick start](ssh-script/README.md#quick-start). |
+
+The Devbox SSH installers copy the versioned tool and its Windows helpers into
+a per-user directory; enabling an SSH server is a separate explicit operation.
+Its generated SSH configuration, keys, and connection registry stay in `~/.ssh`
+so native OpenSSH commands can use them across tool upgrades.

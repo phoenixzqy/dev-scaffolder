@@ -71,7 +71,7 @@ Describe "Orchestrator -DryRun" {
     }
 
     It "prints every tool name" {
-        foreach ($n in "package-managers","git","gh","node","python","cli-tools","fonts","starship","lazygit","copilot-cli","pi","nvim","windows-terminal","pwsh-profile") {
+        foreach ($n in "package-managers","git","gh","node","python","cli-tools","ssh-script","fonts","starship","lazygit","copilot-cli","pi","nvim","windows-terminal","pwsh-profile") {
             $script:DryRunAll | Should -Match ([regex]::Escape($n))
         }
     }
