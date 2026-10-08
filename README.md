@@ -308,11 +308,16 @@ git add windows/configs && git commit -m "tweak: starship palette"
 
 ### Missing Starship icons
 
+Starship installs **JetBrainsMono Nerd Font** automatically on all three
+platforms, including `--only starship` / `-Only starship` and direct runs of
+`50-starship`. Full installs run the font step once. An explicit
+`--skip fonts` / `-Skip fonts` overrides this dependency.
+
 Boxes in place of the OS, Git, Node, or clock icons mean your terminal font
 lacks the Nerd Font glyphs. Install the font with `./linux/install-all.sh --only fonts`
 or `./macos/install-all.sh --only fonts`, then select **JetBrainsMono Nerd Font**
 in your terminal's settings and fully restart the terminal. For a standalone
-Starship setup, use `--only fonts,starship`.
+Starship setup, `--only starship` also installs the font.
 
 For **SSH**, install and select the font on the computer running the terminal;
 installing fonts on the remote server cannot change local rendering. For **WSL**,

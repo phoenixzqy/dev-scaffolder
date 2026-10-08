@@ -67,6 +67,8 @@ Describe "Orchestrator -DryRun" {
     BeforeAll {
         $script:DryRunAll  = & pwsh -NoProfile -File $script:Installer -DryRun *>&1 | Out-String
         $script:DryRunOnly = & pwsh -NoProfile -File $script:Installer -DryRun -Only nvim,starship *>&1 | Out-String
+        $script:DryRunSkipFonts = & pwsh -NoProfile -File $script:Installer -DryRun -Only starship -Skip fonts *>&1 | Out-String
+        $script:DryRunSkipStarship = & pwsh -NoProfile -File $script:Installer -DryRun -Only starship -Skip starship *>&1 | Out-String
         $script:DryRunSkip = & pwsh -NoProfile -File $script:Installer -DryRun -Skip windows-terminal,pwsh-profile *>&1 | Out-String
     }
 
@@ -85,7 +87,21 @@ Describe "Orchestrator -DryRun" {
         $script:DryRunOnly | Should -Match '\[\+\] starship'
         $script:DryRunOnly | Should -Match '\[\+\] nvim'
         $script:DryRunOnly | Should -Match '\[ \] git'
-        $script:DryRunOnly | Should -Match '\[ \] fonts'
+        $script:DryRunOnly | Should -Match '\[\+\] fonts'
+    }
+
+    It "Starship includes fonts before the prompt step" {
+        $script:DryRunOnly.IndexOf('[+] fonts') | Should -BeLessThan ($script:DryRunOnly.IndexOf('[+] starship'))
+    }
+
+    It "explicit font skips override the Starship dependency" {
+        $script:DryRunSkipFonts | Should -Match '\[ \] fonts'
+        $script:DryRunSkipFonts | Should -Match '\[\+\] starship'
+    }
+
+    It "skipped Starship does not pull in fonts" {
+        $script:DryRunSkipStarship | Should -Match '\[ \] fonts'
+        $script:DryRunSkipStarship | Should -Match '\[ \] starship'
     }
 
     It "-Skip removes entries" {

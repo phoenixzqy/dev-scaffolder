@@ -64,6 +64,12 @@ in_array() {
   return 1
 }
 
+# Starship's bundled prompt requires Nerd Font glyphs. Explicit skips win.
+if [[ -n "$ONLY" ]] && in_array starship "${ONLY_ARR[@]}" \
+    && ! in_array starship "${SKIP_ARR[@]}" && ! in_array fonts "${SKIP_ARR[@]}"; then
+  ONLY_ARR+=("fonts")
+fi
+
 echo "Plan:"
 declare -a PLAN_NAMES=()
 declare -a PLAN_PATHS=()
@@ -101,7 +107,9 @@ fi
 failed=()
 for i in "${!PLAN_NAMES[@]}"; do
   if [[ "${PLAN_RUN[$i]}" == "true" ]]; then
-    if ! bash "${PLAN_PATHS[$i]}"; then
+    # The plan handles fonts once (or honors an explicit skip), so standalone
+    # Starship dependency setup must not repeat it.
+    if ! DEV_SCAFFOLDER_FONTS_HANDLED=1 bash "${PLAN_PATHS[$i]}"; then
       printf '\033[31m  ✗ %s FAILED\033[0m\n' "${PLAN_NAMES[$i]}"
       failed+=("${PLAN_NAMES[$i]}")
     fi

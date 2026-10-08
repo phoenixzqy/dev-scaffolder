@@ -2,6 +2,11 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 write_banner "Starship Prompt"
 
+# Standalone runs need the font too; the orchestrator owns dependency selection.
+if [[ "${DEV_SCAFFOLDER_FONTS_HANDLED:-0}" != "1" ]]; then
+  bash "$SCAFFOLDER_ROOT/tools/40-fonts.sh"
+fi
+
 STARSHIP_MARKER="# >>> dev-scaffolder starship >>>"
 
 install_starship() {
@@ -57,4 +62,4 @@ wire_zshrc
 
 # Glyph rendering happens in the terminal client, not in Starship or SSH.
 write_warn "Starship icons require a Nerd Font. Select 'JetBrainsMono Nerd Font' in your terminal's font settings and restart the terminal."
-write_warn "Missing font? Run the fonts step on the computer running your terminal. For SSH/WSL, install and select the font on the client/Windows host."
+write_warn "The font step installs locally. For remote sessions, install the font on the computer running your terminal. For SSH/WSL, install and select the font on the client/Windows host."

@@ -40,6 +40,57 @@ class ShellSetupTests(unittest.TestCase):
                         '*) builtin source "$@";; esac; }\n' + body)
         return {"BASH_ENV": str(init)}
 
+    def test_starship_plan_includes_fonts_and_honors_explicit_skips(self):
+        cases = (
+            ('--only starship', True, True),
+            ('--only starship --skip fonts', False, True),
+            ('--only starship --skip starship', False, False),
+            ('--only git', False, False),
+            ('', True, True),
+        )
+        for platform in ('linux', 'macos'):
+            for args, fonts, starship in cases:
+                with self.subTest(platform=platform, args=args):
+                    output = self.run_bash(f'bash {platform}/install-all.sh {args} --dry-run')
+                    self.assertIn(('[+]' if fonts else '[ ]') + ' fonts', output)
+                    self.assertIn(('[+]' if starship else '[ ]') + ' starship', output)
+                    if fonts and starship:
+                        self.assertLess(output.index('[+] fonts'), output.index('[+] starship'))
+
+    def test_starship_plan_runs_font_dependency_once(self):
+        for platform in ('linux', 'macos'):
+            with self.subTest(platform=platform):
+                env = self.init_stubs(platform, 'sudo() { :; }\n'
+                    'bash() { echo "$(basename "$1"):$DEV_SCAFFOLDER_FONTS_HANDLED" '
+                    '>> "$HOME/steps"; }\n')
+                log = self.home / 'steps'
+                log.unlink(missing_ok=True)
+                self.run_bash(f'source {platform}/install-all.sh --only starship', **env)
+                self.assertEqual(log.read_text().splitlines(),
+                                 ['40-fonts.sh:1', '50-starship.sh:1'])
+                log.unlink()
+                self.run_bash(f'source {platform}/install-all.sh --only starship --skip fonts', **env)
+                self.assertEqual(log.read_text().splitlines(), ['50-starship.sh:1'])
+
+    def test_standalone_starship_installs_font_unless_plan_handled_it(self):
+        for platform in ('linux', 'macos'):
+            for handled in ('0', '1'):
+                with self.subTest(platform=platform, handled=handled):
+                    env = self.init_stubs(platform,
+                        'bash() { echo "$(basename "$1")" >> "$HOME/font-steps"; }\n'
+                        'brew_install() { :; }\n'
+                        # Stub only the downloaded Starship installer; execute
+                        # the actual standalone Starship script and its wiring.
+                        'curl() { printf "exit 0\\n" > "$3"; }\n')
+                    log = self.home / 'font-steps'
+                    log.unlink(missing_ok=True)
+                    self.run_bash(f'source {platform}/tools/50-starship.sh',
+                                  DEV_SCAFFOLDER_FONTS_HANDLED=handled, **env)
+                    if handled == '0':
+                        self.assertEqual(log.read_text().splitlines(), ['40-fonts.sh'])
+                    else:
+                        self.assertFalse(log.exists())
+
     def test_profiles_preserve_user_path_symlinks_and_repeated_install(self):
         self.assertIsNotNone(shutil.which("zsh"), "Install zsh to run these regressions")
         for platform in ("linux", "macos"):

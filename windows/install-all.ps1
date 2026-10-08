@@ -42,6 +42,10 @@ function Normalize-NameList([string[]]$xs) {
 }
 $OnlySet = Normalize-NameList $Only
 $SkipSet = Normalize-NameList $Skip
+# Starship's bundled prompt requires Nerd Font glyphs. Explicit skips win.
+if ($OnlySet -contains "starship" -and $SkipSet -notcontains "starship" -and $SkipSet -notcontains "fonts") {
+    $OnlySet = @($OnlySet) + @("fonts")
+}
 
 # Short logical name derived from filename: "50-starship.ps1" -> "starship"
 function Get-ToolName([System.IO.FileInfo]$f) {
@@ -68,11 +72,15 @@ if ($DryRun) { Write-Host "`n(dry run — no scripts executed)" -ForegroundColor
 
 $failed = @()
 foreach ($step in ($plan | Where-Object Run)) {
+    $previousFontHandling = $env:DEV_SCAFFOLDER_FONTS_HANDLED
     try {
+        $env:DEV_SCAFFOLDER_FONTS_HANDLED = "1"
         & $step.Path
     } catch {
         Write-Host "  ✗ $($step.Name) FAILED: $_" -ForegroundColor Red
         $failed += $step.Name
+    } finally {
+        $env:DEV_SCAFFOLDER_FONTS_HANDLED = $previousFontHandling
     }
 }
 
