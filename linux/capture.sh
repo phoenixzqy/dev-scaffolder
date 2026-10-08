@@ -28,7 +28,7 @@ snap "$HOME/.config/starship.toml"               "$SCAFFOLDER_ROOT/configs/stars
 snap "$HOME/.config/ghostty/config"               "$SCAFFOLDER_ROOT/configs/ghostty/config"
 snap "$HOME/.config/lazygit/config.yml"           "$SCAFFOLDER_ROOT/configs/lazygit/config.yml"
 snap "$HOME/.config/gh/config.yml"                "$SCAFFOLDER_ROOT/configs/gh/config.yml"
-snap "$HOME/.zshrc"                               "$SCAFFOLDER_ROOT/configs/zsh/.zshrc"
+snap "$HOME/.config/dev-scaffolder/zshrc"  "$SCAFFOLDER_ROOT/configs/zsh/.zshrc"
 
 # nvim
 nvim_dir="$HOME/.config/nvim"

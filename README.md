@@ -140,6 +140,7 @@ that tool. The orchestrator runs them in numeric order and accepts filters:
 ## Layout
 
 ```
+lib/shell-profile.sh         # shared non-destructive shell integration
 windows/
   install-all.ps1          # orchestrator — runs tools/*.ps1 in numeric order
   capture.ps1              # snapshot live configs from this machine into configs/
@@ -197,7 +198,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 00 | Package manager | winget + scoop | Homebrew | apt + build-essential | — |
 | 10 | Git + aliases | `Git.Git` | `git` | `git` | `~/.gitconfig` aliases |
 | 15 | GitHub CLI (gh) | `GitHub.cli` | `gh` | apt repo | `config.yml` (no tokens) |
-| 20 | Node.js LTS + globals | `OpenJS.NodeJS.LTS` | `node` | NodeSource | — |
+| 20 | Node.js + globals | `OpenJS.NodeJS.LTS` | existing runtime or nvm LTS | existing runtime or nvm LTS | — |
 | 25 | Python 3 + packages | `Python.Python.3.12` | `python3` | `python3` | — |
 | 30 | rg, fd, fzf, bat, zoxide, cmake | winget | brew | apt + curl | — |
 | 35 | `j` directory jumper | our own (Python) | our own (Python) | our own (Python) | `j` shell function |
@@ -205,7 +206,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 40 | JetBrainsMono Nerd Font | nerd-fonts zip | brew cask | nerd-fonts zip | — |
 | 50 | Starship prompt | `Starship.Starship` | `starship` | curl installer | `~/.config/starship.toml` |
 | 55 | Lazygit | scoop `extras/lazygit` | `lazygit` | GitHub release | `config.yml` |
-| 60 | GitHub Copilot CLI | `npm i -g @github/copilot` | same | same | — |
+| 60 | GitHub Copilot CLI | `npm i -g @github/copilot` | preserve existing; user-local npm fallback | preserve existing; user-local npm fallback | — |
 | 65 | Pi Coding Agent | `npm i -g @earendil-works/pi-coding-agent` | same | same | — |
 | 70 | Neovim + plugins | `Neovim.Neovim` | `neovim` | PPA / AppImage | `nvim/` config dir |
 | 80 | Terminal | Windows Terminal | Ghostty | Ghostty (optional) | `settings.json` / `config` |
@@ -292,8 +293,33 @@ git add windows/configs && git commit -m "tweak: starship palette"
 - **Idempotent.** Re-running is safe; installers skip packages that are already present.
 - **No admin required.** Fonts register per-user; packages install at user scope.
 - **Secrets are never committed.** `gh auth` tokens (`hosts.yml`) are deliberately excluded — run `gh auth login` once after install.
+- **Existing shell setup is preserved (macOS/Linux).** Zsh defaults live in
+  `~/.config/dev-scaffolder/zshrc` and are sourced before the existing `.zshrc`
+  (under `$ZDOTDIR` when set), keeping custom PATH and version-manager setup.
+  Capture snapshots the managed defaults, not your personal startup file.
+  Linux keeps your current login shell; opt into Zsh with `chsh -s "$(command -v zsh)"`.
+- **Existing Copilot installs are preserved (macOS/Linux).** A reachable `copilot`
+  is left to its current package manager; npm installs missing Copilot into
+  `~/.local/bin` using a user-owned prefix independent of nvm versions.
+  Missing PATH entries are added to Bash/Zsh startup files for standalone installs.
+  Existing Node/npm runtimes and nvm defaults are retained so their global tools stay available.
 - **Backups.** Any existing target config is renamed to `<name>.bak.<timestamp>` before a deploy. Neovim's `~/.config/nvim` (macOS/Linux) or `%LOCALAPPDATA%\nvim` (Windows) is backed up the same way.
 - **Leader key** in Neovim is `\` (backslash); requires Neovim 0.11+ for the `vim.lsp.config` API.
+
+### Missing Starship icons
+
+Boxes in place of the OS, Git, Node, or clock icons mean your terminal font
+lacks the Nerd Font glyphs. Install the font with `./linux/install-all.sh --only fonts`
+or `./macos/install-all.sh --only fonts`, then select **JetBrainsMono Nerd Font**
+in your terminal's settings and fully restart the terminal. For a standalone
+Starship setup, use `--only fonts,starship`.
+
+For **SSH**, install and select the font on the computer running the terminal;
+installing fonts on the remote server cannot change local rendering. For **WSL**,
+run `windows/tools/40-fonts.ps1` on Windows, then set the WSL profile's font in
+Windows Terminal to **JetBrainsMono Nerd Font**. In VS Code, set
+`terminal.integrated.fontFamily` to `JetBrainsMono Nerd Font` on the client.
+The bundled Ghostty and Windows Terminal configs already select this family.
 
 ## Neovim details
 
@@ -337,7 +363,16 @@ git add windows/configs && git commit -m "tweak: starship palette"
 
 ## Testing
 
-The repo ships with two layers of tests.
+Unix shell setup regression tests use Python's standard library and require Zsh:
+
+```bash
+python3 -B -m unittest discover -s tests -v
+```
+
+They use temporary homes and stub package operations to verify custom PATH,
+profile symlinks, repeated installs, nvm defaults, and Copilot installation sources.
+
+Windows validation includes the following tests.
 
 ### 1. Pester unit tests — fast, safe, runs anywhere
 

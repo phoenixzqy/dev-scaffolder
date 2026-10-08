@@ -31,7 +31,8 @@ install_starship() {
 # deployed configs/zsh/.zshrc includes it, so this only matters for
 # `--only starship` runs against a hand-maintained rc file.
 wire_zshrc() {
-  local rc="$HOME/.zshrc"
+  local rc="${ZDOTDIR:-$HOME}/.zshrc"
+  mkdir -p "$(dirname "$rc")"
   [[ -e "$rc" ]] || touch "$rc"
   if grep -qF "starship init zsh" "$rc" 2>/dev/null; then
     write_skip "starship init in $rc"
@@ -53,3 +54,7 @@ ensure_local_bin
 
 deploy_config "$SCAFFOLDER_ROOT/configs/starship/starship.toml" "$HOME/.config/starship.toml"
 wire_zshrc
+
+# Glyph rendering happens in the terminal client, not in Starship or SSH.
+write_warn "Starship icons require a Nerd Font. Select 'JetBrainsMono Nerd Font' in your terminal's font settings and restart the terminal."
+write_warn "Missing font? Run the fonts step on the computer running your terminal. For SSH/WSL, install and select the font on the client/Windows host."

@@ -117,6 +117,20 @@ has_command() { command -v "$1" &>/dev/null; }
 load_nvm() {
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   if [[ -s "$NVM_DIR/nvm.sh" ]]; then
-    \. "$NVM_DIR/nvm.sh"
+    # Preserve a Node version already selected by the user's shell/manager.
+    if has_command node; then
+      \. "$NVM_DIR/nvm.sh" --no-use
+    else
+      \. "$NVM_DIR/nvm.sh"
+    fi
   fi
 }
+
+# Honor native and other user-level CLI installations during setup itself.
+ensure_local_bin() {
+  mkdir -p "$HOME/.local/bin"
+  if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+}
+ensure_local_bin

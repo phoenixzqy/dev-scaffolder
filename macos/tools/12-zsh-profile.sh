@@ -11,7 +11,6 @@ if [[ -d "$HOME/.oh-my-zsh" ]]; then
   git -C "$HOME/.oh-my-zsh" pull --rebase --quiet 2>/dev/null && write_ok "Oh My Zsh updated" || write_ok "Oh My Zsh is up to date"
 else
   write_step "Installing Oh My Zsh…"
-  local tmp
   tmp="$(mktemp)"
   if ! curl -fsSL -o "$tmp" https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh; then
     rm -f "$tmp"
@@ -46,7 +45,8 @@ else
   write_ok "zsh-syntax-highlighting installed"
 fi
 
-# Deploy .zshrc
-deploy_config "$SCAFFOLDER_ROOT/configs/zsh/.zshrc" "$HOME/.zshrc"
+# Integrate defaults without replacing user PATH/version-manager setup.
+source "$SCAFFOLDER_ROOT/../lib/shell-profile.sh"
+deploy_zsh_profile
 
-write_warn "Restart your shell (or run 'source ~/.zshrc') to activate."
+write_warn "Restart zsh (or run 'source ${ZDOTDIR:-$HOME}/.zshrc' from zsh) to activate."

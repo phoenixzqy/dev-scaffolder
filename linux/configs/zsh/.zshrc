@@ -63,6 +63,13 @@ fi
 # <<< dev-scaffolder jump (j) <<<
 
 # ── Node version manager (optional) ──────────────────────────────────────
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  if command -v node &>/dev/null; then
+    # Keep an inherited or user-selected runtime and its global CLI tools.
+    \. "$NVM_DIR/nvm.sh" --no-use
+  else
+    \. "$NVM_DIR/nvm.sh"
+  fi
+fi
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"

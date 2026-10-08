@@ -160,7 +160,12 @@ has_command() { command -v "$1" &>/dev/null; }
 load_nvm() {
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   if [[ -s "$NVM_DIR/nvm.sh" ]]; then
-    \. "$NVM_DIR/nvm.sh"
+    # Preserve a Node version already selected by the user's shell/manager.
+    if has_command node; then
+      \. "$NVM_DIR/nvm.sh" --no-use
+    else
+      \. "$NVM_DIR/nvm.sh"
+    fi
   fi
 }
 
