@@ -86,8 +86,8 @@ jobs:
           source linux/lib/common.sh
           echo "DISTRO_ID=$DISTRO_ID"
           echo "DISTRO_VERSION=$DISTRO_VERSION"
-          echo "ARCH=$ARCH"
-          echo "ARCH_ALT=$ARCH_ALT"
+          echo "SCAFFOLDER_ARCH=$SCAFFOLDER_ARCH"
+          echo "SCAFFOLDER_ARCH_ALT=$SCAFFOLDER_ARCH_ALT"
 
           # Verify all expected functions exist
           for fn in write_banner write_step write_ok write_skip write_warn \
@@ -105,8 +105,8 @@ jobs:
         run: |
           source linux/lib/common.sh
           [[ "$DISTRO_ID" == "ubuntu" ]] || { echo "Expected ubuntu, got $DISTRO_ID"; exit 1; }
-          [[ "$ARCH" =~ ^(amd64|arm64)$ ]] || { echo "Unexpected arch: $ARCH"; exit 1; }
-          echo "✅ Distro: $DISTRO_ID $DISTRO_VERSION ($ARCH)"
+          [[ "$SCAFFOLDER_ARCH" =~ ^(amd64|arm64)$ ]] || { echo "Unexpected arch: $SCAFFOLDER_ARCH"; exit 1; }
+          echo "✅ Distro: $DISTRO_ID $DISTRO_VERSION ($SCAFFOLDER_ARCH)"
 
       - name: Test output helpers produce output
         run: |
