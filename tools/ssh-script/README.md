@@ -151,11 +151,26 @@ this in **Administrator PowerShell on that devbox's Windows host**:
 
 ```powershell
 # Run on the WSL DEVBOX'S WINDOWS HOST, from its copy of ssh-script
-# Replace Ubuntu and the Windows host's LAN IPv4 address with yours.
-.\wsl-forward.ps1 -Distro Ubuntu -ListenAddress 192.168.1.20 -Apply
+wsl --list --verbose
+Get-NetIPAddress -AddressFamily IPv4 |
+    Select-Object InterfaceAlias, IPAddress
 ```
 
-Connect to that WSL server using **the Windows host's address and port 2222**.
+From the output, find the **Windows devbox's Ethernet or Wi-Fi IPv4 address**.
+Use that address, not the WSL `vEthernet` address, `127.0.0.1`, or your laptop's
+address. The forwarding helper requires an address assigned to this Windows host.
+
+In the **same Administrator PowerShell window on the Windows devbox**:
+
+```powershell
+$distro = Read-Host 'Enter the WSL distro name shown above'
+$windowsHostIP = Read-Host 'Enter this Windows devbox Ethernet or Wi-Fi IPv4 address'
+.\wsl-forward.ps1 -Distro $distro -ListenAddress $windowsHostIP
+.\wsl-forward.ps1 -Distro $distro -ListenAddress $windowsHostIP -Apply
+```
+
+Keep a note of the address you entered. Connect to that WSL server from your
+local devices using **this Windows devbox's address and port 2222**.
 Rerun forwarding after WSL's IP changes. See [WSL networking details](#wsl-networking-details).
 
 ### 6. On EACH local device: save connections to all four devboxes
@@ -166,8 +181,24 @@ Return to the **laptop's** `ssh-script` folder and run:
 # Run on the LAPTOP. Replace each address and remote login username.
 python3 devbox.py add dev1 192.168.1.10 --user alice
 python3 devbox.py add dev2 mac-mini.local --user alice
-python3 devbox.py add dev3 192.168.1.20 --user felix --port 2222
 python3 devbox.py add dev4 my-linux.tailnet-name.ts.net --user ubuntu
+```
+
+For the WSL devbox, use **the Windows devbox's IPv4 address you found in step 5**.
+Enter that remote address when prompted, not this local device's address.
+Replace `felix` with your login username **inside the remote WSL distro**:
+
+```sh
+# Run on the LAPTOP: Linux, macOS, or WSL
+printf 'Windows devbox IPv4 address from step 5: '
+read -r windows_host_ip
+python3 devbox.py add dev3 "$windows_host_ip" --user felix --port 2222
+```
+
+```powershell
+# Run on the LAPTOP: native Windows
+$windowsHostIP = Read-Host 'Enter the remote Windows devbox IPv4 address from step 5'
+py -3 devbox.py add dev3 $windowsHostIP --user felix --port 2222
 ```
 
 If you use the **desktop** too, run those same four `add` commands from the
@@ -178,7 +209,7 @@ device; saving them on the laptop does not save them on the desktop.
 | --- | --- | --- |
 | `dev1` | Linux devbox at `192.168.1.10:22` | `alice` |
 | `dev2` | Mac devbox at `mac-mini.local:22` | `alice` |
-| `dev3` | WSL distro via Windows host `192.168.1.20:2222` | WSL user `felix` |
+| `dev3` | WSL distro via the Windows devbox's actual IPv4 address from step 5, port 2222 | WSL user `felix` |
 | `dev4` | Linux devbox via an existing Tailscale hostname, port 22 | `ubuntu` |
 
 The alias is your local shortcut; it does not rename the remote machine.
@@ -299,19 +330,29 @@ change execution policy.
 
 ### WSL networking details
 
-In **Windows Administrator PowerShell**, find the distro name and the Windows
-host's LAN IPv4 address:
+On the **remote devbox's Windows host**, open **Administrator PowerShell** in
+its `ssh-script` folder. Find the distro name and the Windows host's LAN IPv4
+address:
 
 ```powershell
 wsl --list --verbose
-Get-NetIPAddress -AddressFamily IPv4
+Get-NetIPAddress -AddressFamily IPv4 |
+    Select-Object InterfaceAlias, IPAddress
 ```
 
-Use that address, not WSL's internal address, for `ListenAddress`:
+Choose the **Ethernet or Wi-Fi IPv4 address assigned to this Windows devbox**,
+not the WSL `vEthernet` address, loopback address, or a local client's address.
+If you get `ListenAddress is not assigned to this Windows host`, rerun the
+address listing on this Windows devbox and check the address you entered.
+
+In that **same Administrator PowerShell window**, enter the values from the
+listing, preview, then apply:
 
 ```powershell
-.\wsl-forward.ps1 -Distro Ubuntu -ListenAddress 192.168.1.20
-.\wsl-forward.ps1 -Distro Ubuntu -ListenAddress 192.168.1.20 -Apply
+$distro = Read-Host 'Enter the WSL distro name shown above'
+$windowsHostIP = Read-Host 'Enter this Windows devbox Ethernet or Wi-Fi IPv4 address'
+.\wsl-forward.ps1 -Distro $distro -ListenAddress $windowsHostIP
+.\wsl-forward.ps1 -Distro $distro -ListenAddress $windowsHostIP -Apply
 ```
 
 This exposes **Windows-host port 2222 → WSL port 22** and adds a LAN-scoped
@@ -322,10 +363,12 @@ The Windows host must be awake and the distro/SSH service running. Use `-Port`
 for a different host port or `-WslPort` for a customized WSL server port. Multiple
 distros need different host ports.
 
-Remove a forwarding rule created by this helper:
+Remove a forwarding rule created by this helper, in the same Windows
+Administrator PowerShell window using the values above (enter them again if
+you opened a new window):
 
 ```powershell
-.\wsl-forward.ps1 -Distro Ubuntu -ListenAddress 192.168.1.20 -Remove -Apply
+.\wsl-forward.ps1 -Distro $distro -ListenAddress $windowsHostIP -Remove -Apply
 ```
 
 This helper targets **WSL2 NAT**. WSL1 and WSL mirrored networking have different

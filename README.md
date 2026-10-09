@@ -273,8 +273,10 @@ run `keygen` on each local device and keep its private key there. Copy each
 device's public key into `tools/ssh-script/pub-keys/` on every remote devbox
 (or `pub-keys/` beside the installed `devbox.py`). This folder is Git-ignored
 in the repository. Server setup discovers and authorizes all its `.pub` files;
-preview with `setup` before applying. WSL2 NAT connections also need the
-supplied Windows forwarding helper, as described in the tool's README.
+preview with `setup` before applying. For WSL2 NAT, find the remote Windows
+devbox's actual Ethernet or Wi-Fi IPv4 address, use it with the supplied
+forwarding helper on that Windows host, and connect from local devices to that
+same address on port 2222. The tool's README walks through finding the address.
 
 ## Updating settings
 
