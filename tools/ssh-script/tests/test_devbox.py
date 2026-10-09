@@ -140,6 +140,114 @@ class DevboxTests(unittest.TestCase):
             self.invoke("setup", "--public-key", "local.pub", "--apply")
         install.assert_called_once_with(Path.home() / ".ssh", "public key")
 
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "OpenSSH unavailable")
+    def test_setup_discovers_two_clients_beside_script_and_preserves_existing_keys(self):
+        bundle = Path(self.temporary.name) / "ssh-script"
+        public_keys = bundle / "pub-keys"
+        public_keys.mkdir(parents=True)
+        texts = []
+        for name in ("desktop", "laptop"):
+            # Keep test private keys outside the discovery folder, as users should.
+            key = Path(self.temporary.name) / name
+            subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+            copied = public_keys / (name + ".pub")
+            shutil.copyfile(str(key) + ".pub", copied)
+            texts.append(copied.read_text().strip())
+        (public_keys / "notes.txt").write_text("not a key")
+        (public_keys / "nested").mkdir()
+        (public_keys / "nested" / "ignored.pub").write_text("invalid nested key")
+        (public_keys / "directory.pub").mkdir()
+        server_home = Path(self.temporary.name) / "remote-home"
+        server_ssh = server_home / ".ssh"
+        server_ssh.mkdir(parents=True)
+        authorized = server_ssh / "authorized_keys"
+        original = "# Keep existing access\nssh-ed25519 AAAA existing-client\n"
+        authorized.write_text(original)
+
+        # HERE differs from the current directory and the --ssh-dir client override.
+        for kind in ("linux", "wsl", "macos", "windows"):
+            with self.subTest(kind=kind), patch("devbox.HERE", bundle), \
+                    patch("devbox.detect", return_value=kind), \
+                    patch("devbox.linux_commands", return_value=[["test-service"]]), \
+                    patch("devbox.run") as run, patch("devbox.Path.home", return_value=server_home), \
+                    patch.dict(os.environ, {"SUDO_USER": ""}):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    devbox.main(["setup"])
+                self.assertIn(str(public_keys / "laptop.pub"), output.getvalue())
+                self.assertIn(str(public_keys / "desktop.pub"), output.getvalue())
+                run.assert_not_called()
+                self.assertEqual(authorized.read_text(), original)
+                self.invoke("setup", "--apply")
+                self.invoke("setup", "--apply")
+                if kind == "windows":
+                    command = run.call_args.args[0]
+                    self.assertEqual(command[0], "powershell.exe")
+                    self.assertEqual(command[command.index("-File") + 1], str(bundle / "setup-windows.ps1"))
+                    self.assertNotIn("-PublicKey", command)
+                    self.assertIn("-Apply", command)
+                    self.assertEqual(authorized.read_text(), original)
+                else:
+                    self.assertEqual(authorized.read_text(), original + "\n".join(texts) + "\n")
+                authorized.write_text(original)
+        self.assertFalse(self.directory.exists())
+
+    def test_setup_rejects_invalid_discovered_key_before_any_changes(self):
+        bundle = Path(self.temporary.name) / "ssh-script"
+        public_keys = bundle / "pub-keys"
+        public_keys.mkdir(parents=True)
+        (public_keys / "a-good.pub").write_text("placeholder")
+        (public_keys / "z-bad.pub").write_text("private key")
+        def validate(path):
+            if path.name == "z-bad.pub":
+                raise ValueError("Invalid public key")
+            return path, "valid public key"
+        for kind in ("macos", "windows"):
+            with self.subTest(kind=kind), patch("devbox.HERE", bundle), \
+                    patch("devbox.detect", return_value=kind), \
+                    patch("devbox.public_key", side_effect=validate), \
+                    patch("devbox.run") as run, patch("devbox.install_key") as install:
+                with self.assertRaisesRegex(ValueError, "Invalid public key"):
+                    self.invoke("setup", "--apply")
+                run.assert_not_called()
+                install.assert_not_called()
+
+    def test_explicit_key_overrides_folder_including_invalid_keys(self):
+        bundle = Path(self.temporary.name) / "ssh-script"
+        public_keys = bundle / "pub-keys"
+        public_keys.mkdir(parents=True)
+        (public_keys / "bad.pub").write_text("not a public key")
+        selected = Path(self.temporary.name) / "selected.pub"
+        for kind in ("macos", "windows"):
+            with self.subTest(kind=kind), patch("devbox.HERE", bundle), \
+                    patch("devbox.detect", return_value=kind), patch("devbox.run") as run, \
+                    patch("devbox.public_key", return_value=(selected, "selected key")) as validate, \
+                    patch("devbox.install_key") as install, patch.dict(os.environ, {"SUDO_USER": ""}):
+                self.invoke("setup", "--public-key", str(selected), "--apply")
+                validate.assert_called_once_with(selected)
+                if kind == "windows":
+                    command = run.call_args.args[0]
+                    self.assertEqual(command[command.index("-PublicKey") + 1], str(selected))
+                    install.assert_not_called()
+                else:
+                    install.assert_called_once_with(Path.home() / ".ssh", "selected key")
+
+    def test_setup_reports_missing_or_empty_discovery_folder(self):
+        bundle = Path(self.temporary.name) / "ssh-script"
+        for present in (False, True):
+            if present:
+                (bundle / "pub-keys").mkdir(parents=True)
+            with self.subTest(present=present), patch("devbox.HERE", bundle), \
+                    patch("devbox.detect", return_value="macos"), \
+                    patch("devbox.run") as run, patch("devbox.install_key") as install:
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    devbox.main(["setup"])
+                self.assertIn("No public keys found", output.getvalue())
+                self.assertIn(str(bundle / "pub-keys"), output.getvalue())
+                run.assert_not_called()
+                install.assert_not_called()
+
     def test_setup_preview_does_not_execute_or_authorize(self):
         with patch("devbox.detect", return_value="macos"), patch("devbox.run") as run, \
                 patch("devbox.install_key") as install:

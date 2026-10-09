@@ -11,3 +11,6 @@ Thumbs.db
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Local devices' public keys staged for Devbox SSH server setup
+/tools/ssh-script/pub-keys/

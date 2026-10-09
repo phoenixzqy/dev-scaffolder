@@ -1,117 +1,255 @@
 # Devbox SSH
 
-A standalone tool for Windows, macOS, Linux, and WSL. Run server setup on each
-devbox, then register named connections on any local device. No Python packages
-are needed; requires **Python 3.9+** and the **OpenSSH client** (`ssh`, `ssh-keygen`).
+Connect to **four remote devboxes** from **one or two local devices** using
+shortcuts such as `ssh dev1`. Supports Windows, macOS, Linux, and WSL with
+Python **3.9+** and the **OpenSSH client** (`ssh`, `ssh-keygen`); no Python
+packages are needed.
 
-The source lives at `tools/ssh-script/` in this repository. You can use it
-directly, or install a versioned per-user copy with the matching scaffolder:
+## Which machine does what?
 
-```sh
-# From the repository root: Linux/WSL, or use macos/ on a Mac.
-bash linux/tools/36-ssh-script.sh
-```
+| Machine | Role | Commands you run there | Key it needs |
+| --- | --- | --- | --- |
+| Local device 1, e.g. your laptop | SSH client: starts connections | `keygen`, `add`, `connect`, or `ssh dev1` | Its own private key in `~/.ssh/` |
+| Local device 2, e.g. your desktop (optional) | Another SSH client | `keygen`, `add`, `connect`, or `ssh dev1` | Its own separate private key in `~/.ssh/` |
+| Remote devboxes 1–4 | SSH servers: accept connections | `setup`, then `setup --apply` | Public keys from the local devices allowed to connect |
 
-```powershell
-# From the repository root on Windows; no elevation needed to copy the tool.
-.\windows\tools\36-ssh-script.ps1
-```
-
-On Linux/macOS/WSL, the installed folder is
-`~/.local/share/dev-scaffolder/ssh-script`; on Windows it is
-`%LOCALAPPDATA%\dev-scaffolder\ssh-script`. Change into that folder to use the
-commands below. Re-running the installer upgrades changed versions and repairs
-missing bundle files. `DEVBOX_SSH_HOME` overrides the install folder. Installing
-the tool does not enable an SSH server or change your SSH settings.
-
-Use `python3 devbox.py` on macOS/Linux/WSL and `py -3 devbox.py` on Windows.
-All examples assume your terminal is in this folder. Copy this folder to each
-devbox before setup. This tool does not discover machines or create a VPN: use
-reachable LAN IPs, DNS names, or existing Tailscale hostnames. Across different
-networks, a VPN such as Tailscale avoids router port forwarding.
+**Run `keygen` on each local device. Run `setup` on each remote devbox.**
+Keep each private key on the local device that generated it. Copy only the
+matching `.pub` file to the remote devboxes. You do not need to generate client
+keys on the remote devboxes to accept connections.
 
 ## Quick start
 
-Run these commands from the `ssh-script` folder. On Windows, replace `python3`
-with `py -3`. The addresses and usernames below are examples; use your own.
+Every step below identifies the machine where it runs. Examples use a laptop,
+an optional desktop, and four devboxes; replace the addresses and remote login
+usernames with yours.
 
-### Quickly set up an SSH server
+### 1. On every machine: get the tool
 
-**On your local device, once:** create the key you will use to connect.
-
-```sh
-python3 devbox.py keygen --name devboxes
-```
-
-Copy **`~/.ssh/id_ed25519_devboxes.pub`** into the `ssh-script` folder on each
-devbox, using your existing access or a USB drive. For WSL, copy it into the
-folder inside the distro. Keep the private file (without `.pub`) on your local
-device.
-
-**On each Linux, macOS, or WSL devbox:** preview, then apply server setup.
+Clone or copy this repository onto each local device and each remote devbox.
+From the **repository root on that machine**, enter the tool folder:
 
 ```sh
-python3 devbox.py setup --public-key ./id_ed25519_devboxes.pub
-python3 devbox.py setup --public-key ./id_ed25519_devboxes.pub --apply
+# Linux, macOS, or WSL
+cd tools/ssh-script
 ```
 
-**On each native Windows devbox:** use Administrator PowerShell as the account
-you intend to log in to.
-
 ```powershell
-py -3 devbox.py setup --public-key .\id_ed25519_devboxes.pub
-py -3 devbox.py setup --public-key .\id_ed25519_devboxes.pub --apply
+# Native Windows
+Set-Location tools\ssh-script
 ```
 
-Setup detects the OS automatically. Native servers normally listen on port **22**.
+All following `devbox.py` commands run from **this folder on the machine named
+in the step**. On Windows use `py -3` wherever an example says `python3`.
+For a WSL server, work inside the intended WSL distro, rather than Windows
+PowerShell, except for the Windows forwarding step.
 
-**For WSL2 NAT, also run on its Windows host in Administrator PowerShell:**
-replace `Ubuntu` with your distro name and `192.168.1.20` with the Windows host's
-LAN IPv4 address.
+You can also use a per-user installed copy; see [Install a per-user copy](#install-a-per-user-copy).
+In that case run commands from the installed `ssh-script` folder and put public
+keys in its `pub-keys/` subfolder.
+
+### 2. On local device 1 (laptop): create its client key
+
+```sh
+# Run on the LAPTOP, from its ssh-script folder
+python3 devbox.py keygen
+```
+
+This prompts for a passphrase and creates:
+
+| File on the laptop | What to do with it |
+| --- | --- |
+| `~/.ssh/id_ed25519_devboxes` | Private key. Keep it on the laptop; the SSH client uses it. |
+| `~/.ssh/id_ed25519_devboxes.pub` | Public key. Copy it to each remote devbox in step 4. |
+
+On native Windows, these files are under `$HOME\.ssh\`.
+If this key pair already exists, reuse it; `keygen` refuses to overwrite it.
+
+### 3. On local device 2 (desktop), if used: create its own client key
+
+```sh
+# Run on the DESKTOP, from its ssh-script folder
+python3 devbox.py keygen
+```
+
+The desktop gets a **different key pair**, even though the filenames are the
+same as on the laptop. Its private key stays on the desktop. With only one
+local device, skip this step and every reference to `desktop.pub` below.
+
+### 4. On EACH remote devbox: collect the local devices' public keys
+
+Create a `pub-keys` folder **inside that devbox's `ssh-script` folder**:
+
+```sh
+# Run on EACH REMOTE DEVBOX: Linux, macOS, or WSL
+mkdir -p pub-keys
+```
 
 ```powershell
+# Run on EACH REMOTE DEVBOX: native Windows
+New-Item -ItemType Directory -Path .\pub-keys -Force
+```
+
+Using your existing access, file transfer, or a USB drive, copy:
+
+- The laptop's `~/.ssh/id_ed25519_devboxes.pub` → `pub-keys/laptop.pub`
+  **on each of the four devboxes**.
+- The desktop's `~/.ssh/id_ed25519_devboxes.pub` → `pub-keys/desktop.pub`
+  **on each of the four devboxes**, if you use a desktop too.
+
+Rename the copied files as shown so the two devices' keys do not overwrite each
+other. Each remote devbox should now have:
+
+```text
+ssh-script/
+  devbox.py
+  setup-windows.ps1
+  wsl-forward.ps1
+  pub-keys/
+    laptop.pub
+    desktop.pub     # Only if you use a second local device
+```
+
+`pub-keys/` is ignored by Git in this repository: these files are local to each
+checkout and **will not arrive on other machines through a clone or pull**.
+Copy them explicitly to every remote devbox. Private keys never go in this folder.
+
+### 5. On EACH remote devbox: preview and enable its SSH server
+
+```sh
+# Run on EACH REMOTE DEVBOX: Linux, macOS, or WSL
+python3 devbox.py setup
+python3 devbox.py setup --apply
+```
+
+```powershell
+# Run on EACH REMOTE DEVBOX: native Windows
+# Use Administrator PowerShell as the account you intend to log in to.
+py -3 devbox.py setup
+py -3 devbox.py setup --apply
+```
+
+`setup` detects the OS and lists every `.pub` file in `pub-keys/` beside
+`devbox.py`, regardless of the terminal's working directory. Review that list:
+**every listed key will allow its matching local device to log in**.
+`setup --apply` authorizes those keys and installs/enables the SSH server.
+It validates all keys before changing keys or services and avoids duplicate
+authorized-key entries on reruns. Files in subfolders and files without the
+`.pub` extension are not included.
+
+If no keys are found, setup reports that and can still enable the server;
+key-based access requires copying the keys and rerunning `setup --apply`.
+To authorize just one file instead of discovering the folder:
+
+```sh
+# Optional, on a REMOTE DEVBOX
+python3 devbox.py setup --public-key /path/to/laptop.pub --apply
+```
+
+Native servers normally listen on port **22**. For a WSL2 NAT devbox, also run
+this in **Administrator PowerShell on that devbox's Windows host**:
+
+```powershell
+# Run on the WSL DEVBOX'S WINDOWS HOST, from its copy of ssh-script
+# Replace Ubuntu and the Windows host's LAN IPv4 address with yours.
 .\wsl-forward.ps1 -Distro Ubuntu -ListenAddress 192.168.1.20 -Apply
 ```
 
 Connect to that WSL server using **the Windows host's address and port 2222**.
-Rerun forwarding after WSL's IP changes. See [WSL networking details](#wsl-networking-details)
-for finding the address, previewing changes, and other WSL networking modes.
+Rerun forwarding after WSL's IP changes. See [WSL networking details](#wsl-networking-details).
 
-### Quickly connect to a named SSH server
+### 6. On EACH local device: save connections to all four devboxes
 
-**Back on your local device:** save a name once, then connect.
+Return to the **laptop's** `ssh-script` folder and run:
 
 ```sh
+# Run on the LAPTOP. Replace each address and remote login username.
 python3 devbox.py add dev1 192.168.1.10 --user alice
-ssh dev1
-```
-
-`dev1` is the shortcut you choose; `192.168.1.10` is that devbox's reachable
-address; `alice` is the login account **on that devbox**. The `devboxes` key from
-setup is selected automatically. Saving the alias is a local operation; it does
-not rename the server. On the first connection, verify its host-key fingerprint
-using your existing access before accepting it.
-
-**Save your other three devboxes:** this example includes macOS, WSL, and a
-Linux machine reachable through an existing Tailscale network.
-
-```sh
 python3 devbox.py add dev2 mac-mini.local --user alice
 python3 devbox.py add dev3 192.168.1.20 --user felix --port 2222
 python3 devbox.py add dev4 my-linux.tailnet-name.ts.net --user ubuntu
 ```
 
-**Everyday use:** connect directly to a saved name, or choose from the menu.
+If you use the **desktop** too, run those same four `add` commands from the
+**desktop's** `ssh-script` folder. Aliases are stored separately on each local
+device; saving them on the laptop does not save them on the desktop.
+
+| Example alias | Remote destination | Login account on that remote machine |
+| --- | --- | --- |
+| `dev1` | Linux devbox at `192.168.1.10:22` | `alice` |
+| `dev2` | Mac devbox at `mac-mini.local:22` | `alice` |
+| `dev3` | WSL distro via Windows host `192.168.1.20:2222` | WSL user `felix` |
+| `dev4` | Linux devbox via an existing Tailscale hostname, port 22 | `ubuntu` |
+
+The alias is your local shortcut; it does not rename the remote machine.
+`--user` is the **remote** login account, which may differ from your local
+username. Each local device automatically uses **its own**
+`~/.ssh/id_ed25519_devboxes` private key. For a different existing key, pass
+`--identity /path/to/private-key` to `add`.
+
+This tool does not discover machines or create a VPN. Supply reachable LAN IPs,
+DNS names, or existing Tailscale hostnames. Across different networks, an
+existing VPN such as Tailscale avoids router port forwarding.
+
+### 7. Everyday use: connect FROM either local device
 
 ```sh
+# Run on the LAPTOP or DESKTOP, from any folder
+ssh dev1
+ssh dev2
 ssh dev3
+ssh dev4
+```
+
+On each device's first connection to a devbox, verify the server's host-key
+fingerprint using your existing access before accepting it. This server identity
+check is separate from the client keys you copied earlier.
+
+Or choose a saved devbox from a menu:
+
+```sh
+# Run on a LOCAL DEVICE, from its ssh-script folder
 python3 devbox.py connect
 ```
+
+To add another local device later, generate its own key, copy its `.pub` file
+into `pub-keys/` on all four remote devboxes, rerun server setup there, and save
+the four aliases on the new local device. Removing a file from `pub-keys/` does
+not revoke an already authorized key; remove that key from each server's
+applicable authorized-keys file to revoke access.
+
+## Install a per-user copy
+
+Instead of running from the repository folder, install the tool on **each
+machine where you need it**. From that machine's repository root:
+
+```sh
+# Linux/WSL; use macos/ on a Mac
+bash linux/tools/36-ssh-script.sh
+```
+
+```powershell
+# Native Windows; no elevation needed to copy the tool
+.\windows\tools\36-ssh-script.ps1
+```
+
+Then enter the installed folder:
+
+- Linux/macOS/WSL: `~/.local/share/dev-scaffolder/ssh-script`
+- Windows: `%LOCALAPPDATA%\dev-scaffolder\ssh-script`
+
+`DEVBOX_SSH_HOME` overrides the install location. Re-running the installer
+upgrades changed versions and repairs missing bundle files. It does not copy
+the repository's `pub-keys/` folder: on a remote devbox, create `pub-keys/`
+**beside the installed `devbox.py`** and copy the client public keys there.
+Existing keys in that installed folder are preserved during upgrades.
+Installing the tool alone does not enable an SSH server or change SSH settings.
 
 ## Server setup details
 
 `setup` previews operations; `setup --apply` installs/enables the server and
-authorizes the supplied public key. Run setup on the devbox that will accept
+authorizes all discovered `pub-keys/*.pub` files, or only the file selected by
+`--public-key`. Run setup on the devbox that will accept
 connections, and run `add`/`connect` on your local device. You can check detection
 separately with `python3 devbox.py detect`.
 
@@ -129,7 +267,8 @@ remain and can be rerun.
   also enable **System Settings → General → Sharing → Remote Login** yourself;
   ensure your login account is allowed. Apple includes OpenSSH; install Python
   separately if absent.
-- **Windows:** run `py -3 devbox.py setup --public-key C:\path\key.pub --apply`
+- **Windows:** run `py -3 devbox.py setup --apply` with client public keys in
+  the adjacent `pub-keys/` folder (or select one file with `--public-key PATH`)
   in Administrator PowerShell as the intended login account. It installs the
   Windows OpenSSH Server capability, starts `sshd`, sets automatic startup, and
   adds a LAN-scoped firewall rule. Existing firewall rules are preserved, so an
@@ -197,9 +336,10 @@ VPN running inside WSL is another way to give the distro a reachable hostname.
 
 ## Keys and connection settings
 
-Key generation prompts for a passphrase and refuses to overwrite existing keys.
-Each local device should generate its own key and authorize its public key on
-the devboxes. Optionally load your private key into your system's SSH agent to
+On each **local device**, key generation prompts for a passphrase and refuses
+to overwrite existing keys. Each local device should generate its own key and
+authorize its public key on the devboxes. On that **same local device**, optionally
+load your private key into your system's SSH agent to
 avoid entering its passphrase for each connection:
 
 ```sh

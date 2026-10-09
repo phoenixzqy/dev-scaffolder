@@ -202,7 +202,7 @@ All three platforms install the same core tools. Platform-specific differences n
 | 25 | Python 3 + packages | `Python.Python.3.12` | `python3` | `python3` | — |
 | 30 | rg, fd, fzf, bat, zoxide, cmake | winget | brew | apt + curl | — |
 | 35 | `j` directory jumper | our own (Python) | our own (Python) | our own (Python) | `j` shell function |
-| 36 | Devbox SSH | our own (Python + PowerShell helpers) | our own (Python) | our own (Python) | Per-user tool copy; SSH setup is explicit |
+| 36 | Devbox SSH | our own (Python + PowerShell helpers) | our own (Python) | our own (Python) | Explicit SSH setup with public-key folder discovery; named connections |
 | 40 | JetBrainsMono Nerd Font | nerd-fonts zip | brew cask | nerd-fonts zip | — |
 | 50 | Starship prompt | `Starship.Starship` | `starship` | curl installer | `~/.config/starship.toml` |
 | 55 | Lazygit | scoop `extras/lazygit` | `lazygit` | GitHub release | `config.yml` |
@@ -268,8 +268,13 @@ Full scaffolder runs also copy it automatically, and support `--only ssh-script`
 on Unix or `-Only ssh-script` on Windows. These installers are per-user and
 version-aware; they do not enable SSH or change firewalls. Run `setup --apply`
 on each devbox to enable its server, then `add` on your local device to save
-connection names. WSL2 NAT connections also need the supplied Windows forwarding
-helper, as described in the tool's README.
+connection names. For one or two local devices connecting to four devboxes,
+run `keygen` on each local device and keep its private key there. Copy each
+device's public key into `tools/ssh-script/pub-keys/` on every remote devbox
+(or `pub-keys/` beside the installed `devbox.py`). This folder is Git-ignored
+in the repository. Server setup discovers and authorizes all its `.pub` files;
+preview with `setup` before applying. WSL2 NAT connections also need the
+supplied Windows forwarding helper, as described in the tool's README.
 
 ## Updating settings
 

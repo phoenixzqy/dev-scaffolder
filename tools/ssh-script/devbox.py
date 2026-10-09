@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 HERE = Path(__file__).resolve().parent
 ALIAS = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\Z")
@@ -214,13 +214,17 @@ def linux_commands(kind):
 
 def setup(args, directory):
     kind = detect()
-    key_path, key = public_key(args.public_key) if args.public_key else (None, None)
+    key_directory = HERE / "pub-keys"
+    key_paths = [Path(args.public_key)] if args.public_key else sorted(
+        path for path in key_directory.glob("*.pub") if path.is_file())
+    # Validate every key before authorizing any key or changing services.
+    keys = [public_key(path) for path in key_paths]
     if kind != "windows" and os.environ.get("SUDO_USER"):
         raise ValueError("Run as your normal login user; this tool invokes sudo when needed")
     if kind == "windows":
         commands = [["powershell.exe", "-NoProfile", "-File", str(HERE / "setup-windows.ps1")]]
-        if key_path:
-            commands[0] += ["-PublicKey", str(key_path)]
+        if args.public_key:
+            commands[0] += ["-PublicKey", str(keys[0][0])]
         if args.apply:
             commands[0] += ["-Apply"]
     elif kind == "macos":
@@ -229,20 +233,22 @@ def setup(args, directory):
         commands = linux_commands(kind)
     print("Detected:", kind)
     print("Login user:", os.environ.get("USERNAME") or os.environ.get("USER") or "current user")
-    if key_path:
+    for key_path, _ in keys:
         print("Authorize public key:", key_path)
     for command in commands:
         print("  " + (subprocess.list2cmdline(command) if kind == "windows" else shlex.join(command)))
     if args.apply:
-        if key and kind != "windows":
-            install_key(Path.home() / ".ssh", key)
+        if kind != "windows":
+            for _, key in keys:
+                install_key(Path.home() / ".ssh", key)
         for command in commands:
             run(command)
         print("Server setup commands completed. Verify the connection from your local device.")
     else:
         print("Preview only. Add --apply to execute (administrator/sudo access required).")
-    if not key:
-        print("No key supplied. Use --public-key to authorize your local device's .pub file.")
+    if not keys:
+        print("No public keys found. Copy each local device's .pub file into", key_directory)
+        print("Then rerun setup --apply, or select one key with --public-key PATH.")
     if kind == "wsl":
         print("WSL NAT: run wsl-forward.ps1 as Windows Administrator; use the Windows host's LAN IP.")
         print("Without systemd, repeat setup --apply after WSL restarts. See README.md.")
@@ -277,7 +283,7 @@ def main(argv=None):
     commands.add_parser("detect", help="Identify Windows, macOS, Linux, or WSL")
     server = commands.add_parser("setup", help="Preview or enable this devbox's SSH server")
     server.add_argument("--apply", action="store_true")
-    server.add_argument("--public-key", help="Your local device's OpenSSH .pub file")
+    server.add_argument("--public-key", help="Authorize only this OpenSSH .pub file instead of all pub-keys/*.pub")
     keygen = commands.add_parser("keygen", help="Create a named local SSH key (prompts for passphrase)")
     keygen.add_argument("--name", default="devboxes")
     add = commands.add_parser("add", help="Register a devbox and install a native ssh alias")
@@ -308,7 +314,9 @@ def main(argv=None):
         if key.exists() or Path(str(key) + ".pub").exists():
             raise ValueError("Key already exists; refusing to overwrite: " + str(key))
         run(["ssh-keygen", "-t", "ed25519", "-f", key, "-C", "devbox-" + name])
-        print("Copy only this public key to each devbox:", str(key) + ".pub")
+        print("Client private key (keep on this device):", key)
+        print("Copy this public key to each remote devbox's ssh-script/pub-keys/ folder:", str(key) + ".pub")
+        print("Use a distinct .pub filename for each local device, e.g. laptop.pub or desktop.pub.")
     else:
         boxes = load_boxes(directory)
         if args.command == "add":
